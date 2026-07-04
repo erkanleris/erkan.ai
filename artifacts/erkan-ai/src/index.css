@@ -1,0 +1,324 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background: #020817;
+}
+
+/* ── Splash Root ────────────────────────────────────────────── */
+.splash-root {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #020817;
+}
+
+/* ── Background layers ──────────────────────────────────────── */
+.bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 55% at 50% 5%, #0c1f4a 0%, #050d2a 45%, #020817 75%, #000000 100%);
+  z-index: 0;
+}
+
+.bg-radial-center {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.09) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg-radial-bottom {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  height: 200px;
+  background: radial-gradient(ellipse, rgba(79, 142, 247, 0.07) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Circuit Patterns ───────────────────────────────────────── */
+.circuit-left,
+.circuit-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 140px;
+  height: 460px;
+  z-index: 1;
+  pointer-events: none;
+  animation: fadeIn 1.4s ease forwards 0.3s;
+  opacity: 0;
+}
+
+.circuit-left { left: 0; }
+.circuit-right { right: 0; }
+
+.circuit-pattern { width: 100%; height: 100%; }
+
+/* ── Content area ───────────────────────────────────────────── */
+.content-area {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 380px;
+  padding: 0 28px;
+}
+
+/* ── Logo wrapper ───────────────────────────────────────────── */
+.logo-wrapper {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  animation: logoReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes logoReveal {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Outer glowing ring */
+.ring-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(
+    from 200deg,
+    #4f8ef7 0deg,
+    #7c3aed 80deg,
+    #a855f7 170deg,
+    #4f8ef7 260deg,
+    #a855f7 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+  animation: ringRotate 6s linear infinite;
+  filter: drop-shadow(0 0 6px #6c4af7aa) drop-shadow(0 0 18px #4f8ef755);
+}
+
+@keyframes ringRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Inner glow ring */
+.ring-inner {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow:
+    0 0 25px rgba(79, 142, 247, 0.14),
+    0 0 55px rgba(108, 74, 247, 0.08),
+    inset 0 0 25px rgba(79, 142, 247, 0.05);
+}
+
+/* Glassmorphism logo container */
+.logo-glass {
+  position: relative;
+  width: 155px;
+  height: 155px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 32%,
+    rgba(25, 35, 75, 0.88) 0%,
+    rgba(10, 14, 38, 0.92) 55%,
+    rgba(4, 7, 18, 0.96) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(79, 142, 247, 0.16);
+  box-shadow:
+    0 0 35px rgba(79, 142, 247, 0.10),
+    0 0 70px rgba(108, 74, 247, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 25px rgba(79, 142, 247, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-glass::before {
+  content: "";
+  position: absolute;
+  top: -35%;
+  left: -22%;
+  width: 80%;
+  height: 65%;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+  transform: rotate(-28deg);
+  pointer-events: none;
+}
+
+.ea-logo-svg {
+  width: 116px;
+  height: 93px;
+  filter: drop-shadow(0 0 7px rgba(79, 142, 247, 0.55)) drop-shadow(0 0 18px rgba(168, 85, 247, 0.28));
+}
+
+/* ── App Name ───────────────────────────────────────────────── */
+.app-name {
+  font-family: "Inter", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 12px;
+  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.25s;
+  opacity: 0;
+}
+
+.app-name-erkan {
+  color: #ffffff;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.app-name-ai {
+  background: linear-gradient(135deg, #60a5fa 0%, #818cf8 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.55));
+}
+
+/* ── Arabic Slogan ──────────────────────────────────────────── */
+.slogan-arabic {
+  font-family: "Cairo", "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: rgba(175, 188, 212, 0.72);
+  letter-spacing: 0.01em;
+  text-align: center;
+  margin-bottom: 52px;
+  line-height: 1.6;
+  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+  opacity: 0;
+}
+
+/* ── Loader Section ─────────────────────────────────────────── */
+.loader-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.55s;
+  opacity: 0;
+}
+
+.loading-bar-track {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(79, 142, 247, 0.10);
+  overflow: visible;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #3b82f6 0%, #6366f1 55%, #a855f7 100%);
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.loading-bar-glow {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 14px;
+  transform: translateY(-50%);
+  border-radius: 100px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(99, 102, 241, 0.45) 55%, rgba(168, 85, 247, 0.35) 100%);
+  filter: blur(5px);
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.loading-bar-fill::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow:
+    0 0 5px #a855f7,
+    0 0 12px #a855f799,
+    0 0 24px #6366f155;
+}
+
+/* ── Arabic Loading Text ────────────────────────────────────── */
+.loading-text-arabic {
+  font-family: "Cairo", "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: rgba(145, 160, 192, 0.6);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* ── Shared Animations ──────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-height: 700px) {
+  .logo-wrapper { width: 170px; height: 170px; margin-bottom: 20px; }
+  .logo-glass   { width: 132px; height: 132px; }
+  .ea-logo-svg  { width: 98px; height: 78px; }
+  .app-name     { font-size: 2rem; }
+  .slogan-arabic { margin-bottom: 36px; font-size: 0.82rem; }
+}
+
+@media (max-width: 360px) {
+  .app-name { font-size: 2rem; }
+}
