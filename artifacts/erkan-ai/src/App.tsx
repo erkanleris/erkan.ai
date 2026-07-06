@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import LoginScreen from "./pages/LoginScreen";
 import HomeScreen from "./pages/HomeScreen";
 import ChatScreen from "./pages/ChatScreen";
+import ProfileScreen from "./pages/ProfileScreen";
+import { authMe, type User } from "./lib/api";
 
 function CircuitPattern({ side }: { side: "left" | "right" }) {
   const flip = side === "right";
@@ -37,12 +39,14 @@ type AppScreen =
   | { name: "loading" }
   | { name: "login" }
   | { name: "home" }
-  | { name: "chat"; data?: { conversationId?: number; initialMessage?: string; mode?: string } };
+  | { name: "chat"; data?: { conversationId?: number; initialMessage?: string; mode?: string } }
+  | { name: "profile" };
 
 export default function App() {
   const [pct, setPct] = useState(0);
   const [splashOut, setSplashOut] = useState(false);
   const [screen, setScreen] = useState<AppScreen>({ name: "loading" });
+  const [user, setUser] = useState<User | null>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
   const DURATION = 3800;
@@ -58,8 +62,20 @@ export default function App() {
         rafRef.current = requestAnimationFrame(animate);
       } else {
         setPct(100);
-        setTimeout(() => setSplashOut(true), 400);
-        setTimeout(() => setScreen({ name: "login" }), 900);
+        // Check existing session before showing login
+        authMe().then(u => {
+          if (u) {
+            setUser(u);
+            setSplashOut(true);
+            setTimeout(() => setScreen({ name: "home" }), 500);
+          } else {
+            setSplashOut(true);
+            setTimeout(() => setScreen({ name: "login" }), 500);
+          }
+        }).catch(() => {
+          setSplashOut(true);
+          setTimeout(() => setScreen({ name: "login" }), 500);
+        });
       }
     };
     rafRef.current = requestAnimationFrame(animate);
@@ -68,18 +84,44 @@ export default function App() {
 
   const navigate = (dest: string, data?: unknown) => {
     if (dest === "chat") setScreen({ name: "chat", data: data as { conversationId?: number; initialMessage?: string; mode?: string } });
-    else if (dest === "home") setScreen({ name: "home" });
+    else if (dest === "profile") setScreen({ name: "profile" });
     else setScreen({ name: "home" });
   };
 
-  if (screen.name === "login") return <LoginScreen onLogin={() => setScreen({ name: "home" })} />;
-  if (screen.name === "home") return <HomeScreen onNavigate={navigate} />;
+  const handleLogin = (u: User) => {
+    setUser(u);
+    setScreen({ name: "home" });
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setScreen({ name: "login" });
+  };
+
+  if (screen.name === "login") return <LoginScreen onLogin={handleLogin} />;
+
+  if (screen.name === "home") return (
+    <HomeScreen
+      onNavigate={navigate}
+      user={user}
+    />
+  );
+
   if (screen.name === "chat") return (
     <ChatScreen
       onBack={() => setScreen({ name: "home" })}
       conversationId={screen.data?.conversationId}
       initialMessage={screen.data?.initialMessage}
       mode={screen.data?.mode ?? "chat"}
+    />
+  );
+
+  if (screen.name === "profile" && user) return (
+    <ProfileScreen
+      user={user}
+      onUserUpdate={setUser}
+      onLogout={handleLogout}
+      onBack={() => setScreen({ name: "home" })}
     />
   );
 

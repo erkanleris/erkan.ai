@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { getConversations, type Conversation } from "../lib/api";
+import { getConversations, type Conversation, type User } from "../lib/api";
 
 interface Props {
   onNavigate: (screen: string, data?: unknown) => void;
-  userName?: string;
+  user?: User | null;
 }
 
 const TOOLS = [
@@ -111,7 +111,8 @@ const TOOLS = [
 
 type NavTab = "home" | "chat" | "tools" | "profile" | "plans";
 
-export default function HomeScreen({ onNavigate, userName = "عمر" }: Props) {
+export default function HomeScreen({ onNavigate, user }: Props) {
+  const userName = user?.name ?? "مستخدم";
   const [input, setInput] = useState("");
   const [activeTab, setActiveTab] = useState<NavTab>("home");
   const [conversations, setConversations] = useState<Conversation[]>([]);
