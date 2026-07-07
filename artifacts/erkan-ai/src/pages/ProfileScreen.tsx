@@ -499,14 +499,9 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
                 onClick: () => setModal("pwd"),
               },
               {
-                icon: "🔔", label: "الإشعارات",
-                sub: "تخصيص إشعاراتك",
-                onClick: () => toast$("هذه الميزة قادمة قريباً", "info"),
-              },
-              {
-                icon: "🛡️", label: "الخصوصية والأمان",
-                sub: "إدارة بياناتك الشخصية",
-                onClick: () => toast$("هذه الميزة قادمة قريباً", "info"),
+                icon: "ℹ️", label: "معلومات المطور",
+                sub: "ERKAN AI · فريق TRSY",
+                onClick: () => onNavigate?.("devinfo"),
               },
             ].map((item, i, arr) => (
               <div key={item.label}>
@@ -525,6 +520,21 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
             ))}
           </div>
         </div>
+
+        {/* ── Follow us ── */}
+        <button
+          className="prf2-follow-btn"
+          onClick={() => window.open("https://www.instagram.com/erkanleriscom?igsh=MWw0MWIyc3loN25paQ==", "_blank")}
+          dir="rtl"
+        >
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="1.8">
+            <rect x="2" y="2" width="20" height="20" rx="5" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" strokeWidth="0" />
+          </svg>
+          <span>تابعنا على إنستغرام</span>
+          <span className="prf2-follow-handle">@erkanleriscom</span>
+        </button>
 
         {/* ── Danger zone ── */}
         <div className="prf2-danger" dir="rtl">

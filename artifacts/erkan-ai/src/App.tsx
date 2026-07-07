@@ -5,7 +5,7 @@ import ChatScreen from "./pages/ChatScreen";
 import ProfileScreen from "./pages/ProfileScreen";
 import PlansScreen from "./pages/PlansScreen";
 import ActivateScreen from "./pages/ActivateScreen";
-import AdminPanel from "./pages/AdminPanel";
+import DeveloperInfoScreen from "./pages/DeveloperInfoScreen";
 import { authMe, type User } from "./lib/api";
 
 function CircuitPattern({ side }: { side: "left" | "right" }) {
@@ -46,7 +46,7 @@ type AppScreen =
   | { name: "profile" }
   | { name: "plans" }
   | { name: "activate"; data?: { plan?: string } }
-  | { name: "admin" };
+  | { name: "devinfo" };
 
 export default function App() {
   const [pct, setPct] = useState(0);
@@ -83,7 +83,7 @@ export default function App() {
     else if (dest === "profile") setScreen({ name: "profile" });
     else if (dest === "plans") setScreen({ name: "plans" });
     else if (dest === "activate") setScreen({ name: "activate", data: data as { plan?: string } });
-    else if (dest === "admin") setScreen({ name: "admin" });
+    else if (dest === "devinfo") setScreen({ name: "devinfo" });
     else setScreen({ name: "home" });
   };
 
@@ -122,7 +122,7 @@ export default function App() {
       onActivated={(u) => { setUser(u); setScreen({ name: "home" }); }}
     />
   );
-  if (screen.name === "admin") return <AdminPanel onBack={() => setScreen({ name: "home" })} />;
+  if (screen.name === "devinfo") return <DeveloperInfoScreen onBack={() => setScreen({ name: "profile" })} />;
 
   return (
     <div className={`splash-root ${splashOut ? "splash-fade-out" : ""}`}>
