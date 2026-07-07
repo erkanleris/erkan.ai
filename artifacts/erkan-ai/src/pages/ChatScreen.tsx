@@ -209,7 +209,7 @@ export default function ChatScreen({ onBack, conversationId: initialConvId, init
         </div>
         <div className="chat-ai-model-badge">
           <span className="chat-ai-model-label">نموذج ذكي</span>
-          <span className="chat-ai-model-name">GPT-5.4</span>
+          <span className="chat-ai-model-name">ERKAN AI</span>
         </div>
         {user && (
           <div className={`chat-plan-badge plan-badge-${user.subscriptionType}`}>
