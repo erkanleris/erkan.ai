@@ -8,6 +8,26 @@ import { requireAuth } from "../middleware/requireAuth";
 const router = Router();
 router.use(requireAuth);
 
+type DbUser = typeof users.$inferSelect;
+function userResponse(u: DbUser, extra?: { conversationCount?: number; imageCount?: number }) {
+  return {
+    id: u.id,
+    userId: u.userId,
+    name: u.name,
+    username: u.username,
+    email: u.email,
+    bio: u.bio,
+    avatarUrl: u.avatarUrl,
+    subscriptionType: u.subscriptionType,
+    subscriptionExpiresAt: u.subscriptionExpiresAt,
+    activationCode: u.activationCode,
+    conversationCount: extra?.conversationCount ?? u.conversationCount,
+    imageCount: extra?.imageCount ?? u.imageCount,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt,
+  };
+}
+
 // GET /api/users/me
 router.get("/me", async (req, res) => {
   const userId = res.locals["userId"] as number;
@@ -20,16 +40,10 @@ router.get("/me", async (req, res) => {
       db.select({ total: count() }).from(generatedImages).where(eq(generatedImages.userId, userId)),
     ]);
 
-    const convCount = convRow?.total ?? 0;
-    const imgCount = imgRow?.total ?? 0;
-
-    res.json({
-      id: user.id, name: user.name, username: user.username,
-      email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
-      subscriptionType: user.subscriptionType,
-      conversationCount: convCount, imageCount: imgCount,
-      createdAt: user.createdAt, lastLoginAt: user.lastLoginAt,
-    });
+    res.json(userResponse(user, {
+      conversationCount: convRow?.total ?? 0,
+      imageCount: imgRow?.total ?? 0,
+    }));
   } catch (err) {
     req.log.error({ err }, "Get profile error");
     res.status(500).json({ error: "حدث خطأ" });
@@ -56,12 +70,7 @@ router.put("/me", async (req, res) => {
 
     const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
     if (!updated) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }
-
-    res.json({
-      id: updated.id, name: updated.name, username: updated.username,
-      email: updated.email, bio: updated.bio, avatarUrl: updated.avatarUrl,
-      subscriptionType: updated.subscriptionType,
-    });
+    res.json(userResponse(updated));
   } catch (err: unknown) {
     if (String(err).includes("unique")) {
       res.status(409).json({ error: "اسم المستخدم مستخدم مسبقاً" }); return;
@@ -121,17 +130,6 @@ router.get("/me/images", async (req, res) => {
     res.json(imgs);
   } catch (err) {
     req.log.error({ err }, "Get images error");
-    res.status(500).json({ error: "حدث خطأ" });
-  }
-});
-
-// DELETE /api/users/me/images/:id
-router.delete("/me/images/:id", async (req, res) => {
-  try {
-    await db.delete(generatedImages).where(eq(generatedImages.id, Number(req.params["id"])));
-    res.json({ success: true });
-  } catch (err) {
-    req.log.error({ err }, "Delete image error");
     res.status(500).json({ error: "حدث خطأ" });
   }
 });

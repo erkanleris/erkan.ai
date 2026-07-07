@@ -51,15 +51,19 @@ router.post("/activate", async (req, res) => {
   if (!code?.trim()) { res.status(400).json({ error: "أدخل كود التفعيل" }); return; }
 
   const cleanCode = code.trim().replace(/-/g, "").toUpperCase();
-  if (cleanCode.length !== 16) { res.status(400).json({ error: "الكود يجب أن يكون 16 حرف/رقم" }); return; }
+  if (cleanCode.length !== 16) {
+    res.status(400).json({ error: "يجب أن يتكون كود التفعيل من 16 حرفاً ورقماً" }); return;
+  }
 
   try {
-    const [codeRow] = await db.select().from(subscriptionCodes)
-      .where(and(eq(subscriptionCodes.code, cleanCode), isNull(subscriptionCodes.usedBy)))
-      .limit(1);
+    // Check if code exists at all
+    const [anyCode] = await db.select().from(subscriptionCodes)
+      .where(eq(subscriptionCodes.code, cleanCode)).limit(1);
 
-    if (!codeRow) { res.status(404).json({ error: "الكود غير صحيح أو تم استخدامه مسبقاً" }); return; }
+    if (!anyCode) { res.status(404).json({ error: "كود التفعيل غير صحيح" }); return; }
+    if (anyCode.usedBy !== null) { res.status(409).json({ error: "تم استخدام هذا الكود مسبقاً" }); return; }
 
+    const codeRow = anyCode;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + codeRow.durationDays * 24 * 60 * 60 * 1000);
 
@@ -69,7 +73,11 @@ router.post("/activate", async (req, res) => {
         .where(eq(subscriptionCodes.id, codeRow.id));
 
       await tx.update(users)
-        .set({ subscriptionType: codeRow.plan, subscriptionExpiresAt: expiresAt })
+        .set({
+          subscriptionType: codeRow.plan,
+          subscriptionExpiresAt: expiresAt,
+          activationCode: codeRow.code,
+        })
         .where(eq(users.id, userId));
     });
 

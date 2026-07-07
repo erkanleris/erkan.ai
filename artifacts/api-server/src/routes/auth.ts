@@ -8,6 +8,40 @@ import { getTokenFromRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
+function generateUserId(): string {
+  const digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+  return `LMR-${digits}`;
+}
+
+type DbUser = typeof users.$inferSelect;
+function userResponse(u: DbUser, overrides?: { lastLoginAt?: Date }) {
+  return {
+    id: u.id,
+    userId: u.userId,
+    name: u.name,
+    username: u.username,
+    email: u.email,
+    bio: u.bio,
+    avatarUrl: u.avatarUrl,
+    subscriptionType: u.subscriptionType,
+    subscriptionExpiresAt: u.subscriptionExpiresAt,
+    activationCode: u.activationCode,
+    conversationCount: u.conversationCount,
+    imageCount: u.imageCount,
+    createdAt: u.createdAt,
+    lastLoginAt: overrides?.lastLoginAt ?? u.lastLoginAt,
+  };
+}
+
+async function ensureUserId(user: DbUser): Promise<DbUser> {
+  if (user.userId) return user;
+  const [updated] = await db.update(users)
+    .set({ userId: generateUserId() })
+    .where(eq(users.id, user.id))
+    .returning();
+  return updated ?? user;
+}
+
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { name, username, email, password } = req.body as {
@@ -38,6 +72,7 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const [user] = await db.insert(users).values({
+      userId: generateUserId(),
       name: name.trim(),
       username: cleanUsername,
       email: email.toLowerCase().trim(),
@@ -46,17 +81,7 @@ router.post("/register", async (req, res) => {
     }).returning();
 
     const token = createToken(user!.id);
-    res.status(201).json({
-      token,
-      user: {
-        id: user!.id, name: user!.name, username: user!.username,
-        email: user!.email, bio: user!.bio, avatarUrl: user!.avatarUrl,
-        subscriptionType: user!.subscriptionType,
-        conversationCount: user!.conversationCount,
-        imageCount: user!.imageCount,
-        createdAt: user!.createdAt, lastLoginAt: user!.lastLoginAt,
-      },
-    });
+    res.status(201).json({ token, user: userResponse(user!) });
   } catch (err) {
     req.log.error({ err }, "Register error");
     res.status(500).json({ error: "حدث خطأ أثناء إنشاء الحساب" });
@@ -87,20 +112,11 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
-    const token = createToken(user.id);
-
-    res.json({
-      token,
-      user: {
-        id: user.id, name: user.name, username: user.username,
-        email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
-        subscriptionType: user.subscriptionType,
-        conversationCount: user.conversationCount,
-        imageCount: user.imageCount,
-        createdAt: user.createdAt, lastLoginAt: new Date().toISOString(),
-      },
-    });
+    const now = new Date();
+    await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, user.id));
+    const finalUser = await ensureUserId(user);
+    const token = createToken(finalUser.id);
+    res.json({ token, user: userResponse(finalUser, { lastLoginAt: now }) });
   } catch (err) {
     req.log.error({ err }, "Login error");
     res.status(500).json({ error: "حدث خطأ أثناء تسجيل الدخول" });
@@ -125,15 +141,8 @@ router.get("/me", async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) { res.status(401).json({ error: "المستخدم غير موجود" }); return; }
-
-    res.json({
-      id: user.id, name: user.name, username: user.username,
-      email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
-      subscriptionType: user.subscriptionType,
-      conversationCount: user.conversationCount,
-      imageCount: user.imageCount,
-      createdAt: user.createdAt, lastLoginAt: user.lastLoginAt,
-    });
+    const finalUser = await ensureUserId(user);
+    res.json(userResponse(finalUser));
   } catch (err) {
     req.log.error({ err }, "Auth me error");
     res.status(500).json({ error: "حدث خطأ" });

@@ -25,11 +25,20 @@ function getHeaders(): HeadersInit {
 
 /* ── Types ─────────────────────────────────── */
 export type User = {
-  id: number; name: string; username: string; email: string;
-  bio: string | null; avatarUrl: string | null;
-  subscriptionType: string; subscriptionExpiresAt: string | null;
-  conversationCount: number; imageCount: number;
-  createdAt: string; lastLoginAt: string | null;
+  id: number;
+  userId: string | null;
+  name: string;
+  username: string;
+  email: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  subscriptionType: string;
+  subscriptionExpiresAt: string | null;
+  activationCode: string | null;
+  conversationCount: number;
+  imageCount: number;
+  createdAt: string;
+  lastLoginAt: string | null;
 };
 
 export type Conversation = {

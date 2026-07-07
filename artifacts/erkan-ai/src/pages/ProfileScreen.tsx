@@ -38,6 +38,33 @@ function planEmoji(p: string) {
   return p === "pro_max" ? "💎" : p === "pro" ? "👑" : "⚡";
 }
 
+/* ─── UserIdCard ────────────────────────── */
+function UserIdCard({ uid, onCopied }: { uid: string; onCopied: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(uid); } catch { /* fallback */ }
+    setCopied(true);
+    onCopied();
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="prf2-uid-card" dir="rtl">
+      <div className="prf2-uid-label">معرّفك الشخصي</div>
+      <div className="prf2-uid-row">
+        <span className="prf2-uid-value">{uid}</span>
+        <button className="prf2-uid-copy-btn" onClick={copy} title="نسخ">
+          {copied ? (
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M20 6L9 17l-5-5" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.6" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          )}
+        </button>
+      </div>
+      <div className="prf2-uid-note">لا يمكن تعديل المعرّف • يُستخدم للتعريف والدعم الفني</div>
+    </div>
+  );
+}
+
 /* ─── Toast ────────────────────────────── */
 type ToastType = "success" | "error" | "info";
 function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: () => void }) {
@@ -427,6 +454,14 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
           </div>
         </div>
 
+        {/* ── User ID card ── */}
+        {user.userId && (
+          <div className="prf2-section" dir="rtl">
+            <div className="prf2-section-title">معرّف المستخدم</div>
+            <UserIdCard uid={user.userId} onCopied={() => toast$("تم نسخ المعرّف ✓")} />
+          </div>
+        )}
+
         {/* ── Account info ── */}
         <div className="prf2-section" dir="rtl">
           <div className="prf2-section-title">معلومات الحساب</div>
@@ -435,6 +470,7 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
               { icon: "📧", label: "البريد الإلكتروني", val: user.email },
               { icon: "🗓️", label: "تاريخ إنشاء الحساب", val: fmtDate(user.createdAt) },
               { icon: "🕐", label: "آخر تسجيل دخول", val: fmtDate(user.lastLoginAt) },
+              { icon: "💬", label: "عدد المحادثات", val: String(user.conversationCount) },
             ].map((row, i, arr) => (
               <div key={row.label} className="prf2-info-row" style={i < arr.length - 1 ? { borderBottom: "1px solid rgba(255,255,255,0.05)" } : {}}>
                 <span className="prf2-info-val">{row.val}</span>

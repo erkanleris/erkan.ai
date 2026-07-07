@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").unique(),
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
@@ -12,6 +13,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   subscriptionType: text("subscription_type").notNull().default("free"),
   subscriptionExpiresAt: timestamp("subscription_expires_at", { withTimezone: true }),
+  activationCode: text("activation_code"),
   dailyMessageCount: integer("daily_message_count").notNull().default(0),
   lastMessageDate: text("last_message_date"),
   conversationCount: integer("conversation_count").notNull().default(0),
