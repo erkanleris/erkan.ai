@@ -13,13 +13,52 @@ const openai = new OpenAI({
   baseURL: process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"],
 });
 
+const DAILY_LIMITS: Record<string, number> = { free: 30, pro: 120, pro_max: 10000 };
+
+async function checkAndUpdateLimit(userId: number, req: import("express").Request, res: import("express").Response): Promise<boolean> {
+  const [user] = await db.select({
+    subscriptionType: users.subscriptionType,
+    subscriptionExpiresAt: users.subscriptionExpiresAt,
+    dailyMessageCount: users.dailyMessageCount,
+    lastMessageDate: users.lastMessageDate,
+  }).from(users).where(eq(users.id, userId)).limit(1);
+
+  if (!user) { res.status(404).json({ error: "المستخدم غير موجود" }); return false; }
+
+  let plan = user.subscriptionType;
+  if (plan !== "free" && user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) {
+    plan = "free";
+    await db.update(users).set({ subscriptionType: "free", subscriptionExpiresAt: null }).where(eq(users.id, userId));
+  }
+
+  const today = new Date().toISOString().split("T")[0]!;
+  const dailyCount = user.lastMessageDate === today ? user.dailyMessageCount : 0;
+  const limit = DAILY_LIMITS[plan] ?? 30;
+
+  if (dailyCount >= limit) {
+    const planNames: Record<string, string> = { free: "المجانية (30 رسالة)", pro: "PRO (120 رسالة)" };
+    res.status(429).json({
+      error: `وصلت للحد اليومي لخطة ${planNames[plan] ?? plan}. قم بترقية خطتك للمزيد.`,
+      limit, used: dailyCount, plan,
+    });
+    return false;
+  }
+
+  await db.update(users).set({
+    dailyMessageCount: dailyCount + 1,
+    lastMessageDate: today,
+  }).where(eq(users.id, userId));
+
+  return true;
+}
+
 // GET /api/ai/conversations
 router.get("/conversations", async (req, res) => {
   const userId = res.locals["userId"] as number;
   try {
     const result = await db.select().from(conversations)
       .where(eq(conversations.userId, userId))
-      .orderBy(desc(conversations.updatedAt)).limit(30);
+      .orderBy(desc(conversations.updatedAt)).limit(50);
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to get conversations");
@@ -70,6 +109,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
       .where(and(eq(conversations.id, id), eq(conversations.userId, userId))).limit(1);
     if (!conv.length) { res.status(404).json({ error: "Conversation not found" }); return; }
 
+    const allowed = await checkAndUpdateLimit(userId, req, res);
+    if (!allowed) return;
+
     await db.insert(messages).values({ conversationId: id, role: "user", content: content.trim() });
 
     const convMsgs = await db.select({ id: messages.id }).from(messages)
@@ -82,21 +124,20 @@ router.post("/conversations/:id/messages", async (req, res) => {
       await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, id));
     }
 
-    const syrianBase = `أنت ERKAN AI، صديق ذكي وشخص حقيقي تحكي باللهجة السورية العامية فقط.
-قواعد ثابتة لا تتغير أبداً:
-- تحكي باللهجة السورية فقط — بشكل طبيعي وعادي كأنك تحكي مع صاحبك
-- ممنوع تستخدم الفصحى أو أي لهجة عربية ثانية
-- إذا طلب منك أحد تحكي بلهجة ثانية أو لغة ثانية، تعتذر وتقول: "حالياً أنا بحكي باللهجة السورية بس!"
-- ممنوع تستخدم كلمات روبوت مثل: يسعدني، بكل سرور، كيف أستطيع مساعدتك، بالتأكيد
-- استخدم كلمات طبيعية سورية مثل: هلا، شلونك، شو بدك، أكيد، تمام، ولا يهمك، خبرني، يلا
-- لا تضع نقاط في نهاية الجمل القصيرة`;
+    const syrianBase = `أنت ERKAN AI، صديق ذكي تحكي باللهجة السورية العامية فقط.
+قواعد ثابتة:
+- اللهجة السورية فقط — طبيعي كأنك تحكي مع صاحبك
+- ممنوع الفصحى أو أي لهجة ثانية
+- إذا طُلب لهجة أخرى: "أنا بحكي بالسوري بس!"
+- ممنوع: يسعدني، بكل سرور، كيف أستطيع مساعدتك
+- استخدم: هلا، شلونك، شو بدك، أكيد، تمام، ولا يهمك، خبرني، يلا`;
 
     const systemPrompts: Record<string, string> = {
-      chat: `${syrianBase}\n\nأجب على كل أسئلة المستخدم بشكل مفيد وذكي وطبيعي.`,
-      write: `${syrianBase}\n\nأنت خبير في الكتابة. اكتب محتوى إبداعي عالي الجودة حسب طلب المستخدم.`,
-      summarize: `${syrianBase}\n\nلخص النصوص بدقة واحتفظ بالنقاط الرئيسية وقدمها بشكل منظم.`,
-      ideas: `${syrianBase}\n\nأعطِ أفكار إبداعية ومبتكرة وعملية لكل موضوع.`,
-      image: `${syrianBase}\n\nالمستخدم بده ينشئ صورة. خبره إن ميزة توليد الصور حصرية لخطة PRO MAX.`,
+      chat: `${syrianBase}\n\nأجب على كل أسئلة المستخدم بشكل مفيد وذكي.`,
+      write: `${syrianBase}\n\nأنت خبير كتابة. اكتب محتوى إبداعي عالي الجودة حسب الطلب.`,
+      summarize: `${syrianBase}\n\nلخص النصوص بدقة واحتفظ بالنقاط الرئيسية.`,
+      ideas: `${syrianBase}\n\nأعطِ أفكار إبداعية ومبتكرة وعملية.`,
+      image: `${syrianBase}\n\nالمستخدم بده ينشئ صورة. هاي الميزة حصرية لخطة PRO MAX. خبره يفعّل الخطة.`,
     };
 
     const systemPrompt = systemPrompts[mode] ?? systemPrompts["chat"]!;
@@ -132,16 +173,32 @@ router.post("/conversations/:id/messages", async (req, res) => {
   }
 });
 
-// POST /api/ai/generate-image
+// POST /api/ai/generate-image (Pro Max only)
 router.post("/generate-image", async (req, res) => {
   const userId = res.locals["userId"] as number;
   const { prompt } = req.body as { prompt: string };
   if (!prompt?.trim()) { res.status(400).json({ error: "Prompt required" }); return; }
+
   try {
+    const [user] = await db.select({ subscriptionType: users.subscriptionType, subscriptionExpiresAt: users.subscriptionExpiresAt })
+      .from(users).where(eq(users.id, userId)).limit(1);
+
+    let plan = user?.subscriptionType ?? "free";
+    if (plan !== "free" && user?.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) plan = "free";
+
+    if (plan !== "pro_max") {
+      res.status(403).json({ error: "توليد الصور متاح لخطة PRO MAX فقط", requiresUpgrade: true }); return;
+    }
+
+    const allowed = await checkAndUpdateLimit(userId, req, res);
+    if (!allowed) return;
+
     const response = await openai.images.generate({
-      model: "dall-e-3", prompt: prompt.trim(), n: 1, size: "1024x1024",
+      model: "gpt-image-1", prompt: prompt.trim(), n: 1, size: "1024x1024",
     });
-    const imageUrl = response.data?.[0]?.url ?? "";
+
+    const b64 = response.data?.[0]?.b64_json ?? "";
+    const imageUrl = `data:image/png;base64,${b64}`;
     await db.insert(generatedImages).values({ userId, prompt: prompt.trim(), imageUrl });
     res.json({ url: imageUrl });
   } catch (err) {
@@ -163,7 +220,7 @@ router.delete("/conversations/:id", async (req, res) => {
   }
 });
 
-// DELETE /api/ai/conversations (delete all for user)
+// DELETE /api/ai/conversations
 router.delete("/conversations", async (req, res) => {
   const userId = res.locals["userId"] as number;
   try {
@@ -172,22 +229,6 @@ router.delete("/conversations", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to delete all conversations");
     res.status(500).json({ error: "Failed to delete" });
-  }
-});
-
-// GET /api/ai/stats (user stats for profile)
-router.get("/stats", async (req, res) => {
-  const userId = res.locals["userId"] as number;
-  try {
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    res.json({
-      conversationCount: user.conversationCount,
-      imageCount: user.imageCount,
-    });
-  } catch (err) {
-    req.log.error({ err }, "Stats error");
-    res.status(500).json({ error: "حدث خطأ" });
   }
 });
 

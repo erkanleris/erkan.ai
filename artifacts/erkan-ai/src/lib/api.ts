@@ -25,34 +25,32 @@ function getHeaders(): HeadersInit {
 
 /* ── Types ─────────────────────────────────── */
 export type User = {
-  id: number;
-  name: string;
-  username: string;
-  email: string;
-  bio: string | null;
-  avatarUrl: string | null;
-  subscriptionType: string;
-  conversationCount: number;
-  imageCount: number;
-  createdAt: string;
-  lastLoginAt: string | null;
+  id: number; name: string; username: string; email: string;
+  bio: string | null; avatarUrl: string | null;
+  subscriptionType: string; subscriptionExpiresAt: string | null;
+  conversationCount: number; imageCount: number;
+  createdAt: string; lastLoginAt: string | null;
 };
 
 export type Conversation = {
-  id: number;
-  userId: number | null;
-  title: string;
-  mode: string;
-  createdAt: string;
-  updatedAt: string;
+  id: number; userId: number | null; title: string; mode: string;
+  createdAt: string; updatedAt: string;
 };
 
 export type Message = {
-  id: number;
-  conversationId: number;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
+  id: number; conversationId: number; role: "user" | "assistant";
+  content: string; createdAt: string;
+};
+
+export type SubscriptionStatus = {
+  plan: string; expiresAt: string | null;
+  dailyUsed: number; dailyLimit: number;
+};
+
+export type SubscriptionCode = {
+  id: number; code: string; plan: string; durationDays: number;
+  usedBy: number | null; usedAt: string | null;
+  note: string | null; createdAt: string;
 };
 
 /* ── Auth ──────────────────────────────────── */
@@ -92,12 +90,7 @@ export async function authLogin(email: string, password: string): Promise<User> 
 
 export async function authLogout(): Promise<void> {
   const token = getStoredToken();
-  if (token) {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${token}` },
-    }).catch(() => {});
-  }
+  if (token) await fetch("/api/auth/logout", { method: "POST", headers: { "Authorization": `Bearer ${token}` } }).catch(() => {});
   clearStoredToken();
 }
 
@@ -110,9 +103,7 @@ export async function getProfile(): Promise<User> {
 }
 
 export async function updateProfile(data: Partial<Pick<User, "name" | "username" | "bio" | "avatarUrl">>): Promise<User> {
-  const r = await fetch("/api/users/me", {
-    method: "PUT", headers: authHeaders(), body: JSON.stringify(data),
-  });
+  const r = await fetch("/api/users/me", { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   const result = await r.json();
   if (!r.ok) throw new Error(result.error ?? "Update failed");
   return result;
@@ -133,6 +124,60 @@ export async function deleteAccount(): Promise<void> {
   if (!r.ok) throw new Error("Delete account failed");
 }
 
+/* ── Subscriptions ─────────────────────────── */
+
+export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const r = await fetch("/api/subscriptions/status", { headers: getHeaders() });
+  if (!r.ok) throw new Error("Failed to load subscription");
+  return r.json();
+}
+
+export async function activateCode(code: string): Promise<{ plan: string; planName: string; expiresAt: string; durationDays: number }> {
+  const r = await fetch("/api/subscriptions/activate", {
+    method: "POST", headers: authHeaders(), body: JSON.stringify({ code }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Activation failed");
+  return data;
+}
+
+/* ── Admin ─────────────────────────────────── */
+
+function adminHeaders(adminKey: string): HeadersInit {
+  return { "Content-Type": "application/json", "Authorization": `Bearer ${adminKey}` };
+}
+
+export async function adminGenerateCode(
+  adminKey: string, plan: string, durationDays: number, note?: string
+): Promise<SubscriptionCode> {
+  const r = await fetch("/api/admin/codes", {
+    method: "POST", headers: adminHeaders(adminKey),
+    body: JSON.stringify({ plan, durationDays, note }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Failed to generate code");
+  return data.code;
+}
+
+export async function adminGetCodes(adminKey: string): Promise<SubscriptionCode[]> {
+  const r = await fetch("/api/admin/codes", { headers: { "Authorization": `Bearer ${adminKey}` } });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Failed to load codes");
+  return data;
+}
+
+export async function adminGetUsers(adminKey: string): Promise<User[]> {
+  const r = await fetch("/api/admin/users", { headers: { "Authorization": `Bearer ${adminKey}` } });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Failed to load users");
+  return data;
+}
+
+export async function adminDeleteCode(adminKey: string, id: number): Promise<void> {
+  const r = await fetch(`/api/admin/codes/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${adminKey}` } });
+  if (!r.ok) throw new Error("Failed to delete code");
+}
+
 /* ── Conversations ─────────────────────────── */
 
 export async function getConversations(): Promise<Conversation[]> {
@@ -143,8 +188,7 @@ export async function getConversations(): Promise<Conversation[]> {
 
 export async function createConversation(title?: string, mode?: string): Promise<Conversation> {
   const r = await fetch("/api/ai/conversations", {
-    method: "POST", headers: authHeaders(),
-    body: JSON.stringify({ title, mode }),
+    method: "POST", headers: authHeaders(), body: JSON.stringify({ title, mode }),
   });
   if (!r.ok) throw new Error("Failed to create conversation");
   return r.json();
@@ -152,6 +196,10 @@ export async function createConversation(title?: string, mode?: string): Promise
 
 export async function deleteConversation(id: number): Promise<void> {
   await fetch(`/api/ai/conversations/${id}`, { method: "DELETE", headers: getHeaders() });
+}
+
+export async function deleteAllConversations(): Promise<void> {
+  await fetch("/api/ai/conversations", { method: "DELETE", headers: getHeaders() });
 }
 
 export async function getMessages(conversationId: number): Promise<Message[]> {
@@ -169,7 +217,11 @@ export function streamMessage(
     method: "POST", headers: authHeaders(),
     body: JSON.stringify({ content, mode }), signal,
   }).then(async (res) => {
-    if (!res.ok || !res.body) { onError("Failed to connect to AI"); return; }
+    if (!res.ok || !res.body) {
+      const err = await res.json().catch(() => ({ error: "Connection failed" }));
+      onError(err.error ?? "Failed to connect to AI");
+      return;
+    }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
@@ -198,7 +250,7 @@ export async function generateImage(prompt: string): Promise<string> {
   const r = await fetch("/api/ai/generate-image", {
     method: "POST", headers: authHeaders(), body: JSON.stringify({ prompt }),
   });
-  if (!r.ok) throw new Error("Image generation failed");
   const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Image generation failed");
   return data.url;
 }

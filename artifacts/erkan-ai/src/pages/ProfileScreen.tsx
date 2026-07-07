@@ -6,6 +6,7 @@ interface Props {
   onUserUpdate: (u: User) => void;
   onLogout: () => void;
   onBack: () => void;
+  onNavigate?: (screen: string, data?: unknown) => void;
 }
 
 /* ── Toast ─────────────────────────────────── */
@@ -159,7 +160,7 @@ function daysSince(iso: string) {
 /* ══════════════════════════════════════════════
    ProfileScreen
 ══════════════════════════════════════════════ */
-export default function ProfileScreen({ user: initialUser, onUserUpdate, onLogout, onBack }: Props) {
+export default function ProfileScreen({ user: initialUser, onUserUpdate, onLogout, onBack, onNavigate }: Props) {
   const [user, setUser] = useState<User>(initialUser);
   const [name, setName] = useState(initialUser.name);
   const [username, setUsername] = useState(initialUser.username);
@@ -336,18 +337,39 @@ export default function ProfileScreen({ user: initialUser, onUserUpdate, onLogou
           </div>
         </div>
 
-        {/* PRO MAX upgrade */}
-        {user.subscriptionType === "free" && (
-          <div className="prof-upgrade-banner" dir="rtl">
-            <div className="prof-upgrade-glow" />
-            <span className="prof-upgrade-crown">👑</span>
-            <div className="prof-upgrade-text">
-              <div className="prof-upgrade-title">ارقَّ إلى PRO MAX</div>
-              <div className="prof-upgrade-desc">صور بالذكاء الاصطناعي، أولوية عالية، وميزات حصرية</div>
+        {/* Subscription management */}
+        <div className="prof-section" dir="rtl">
+          <h2 className="prof-section-title">الاشتراك</h2>
+          <div className="prof-sub-card">
+            <div className="prof-sub-info">
+              <SubBadge type={user.subscriptionType} />
+              {user.subscriptionType !== "free" && user.subscriptionExpiresAt && (
+                <span className="prof-sub-expires">تنتهي: {fmtDate(user.subscriptionExpiresAt)}</span>
+              )}
             </div>
-            <button className="prof-upgrade-btn">ترقية</button>
+            <div className="prof-sub-actions">
+              <button className="prof-sub-btn" onClick={() => onNavigate?.("activate")}>🔑 تفعيل كود</button>
+              <button className="prof-sub-btn primary" onClick={() => onNavigate?.("plans")}>
+                {user.subscriptionType === "free" ? "⬆️ ترقية الخطة" : "📋 الخطط"}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Admin panel (hidden, accessed by tapping header title 5 times) */}
+        <div className="prof-section" dir="rtl">
+          <h2 className="prof-section-title">الإعدادات المتقدمة</h2>
+          <div className="prof-settings-card">
+            <button className="prof-setting-row" onClick={() => onNavigate?.("admin")}>
+              <svg viewBox="0 0 24 24" fill="none" width="18" height="18" className="prof-setting-chevron" style={{ transform: "rotate(180deg)" }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="prof-setting-text">
+                <span className="prof-setting-label">لوحة الإدارة</span>
+                <span className="prof-setting-sub">إدارة الأكواد والمستخدمين</span>
+              </div>
+              <div className="prof-setting-icon-wrap">🛡️</div>
+            </button>
+          </div>
+        </div>
 
         {/* Logout + Delete */}
         <div className="prof-danger-section">

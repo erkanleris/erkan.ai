@@ -11,6 +11,9 @@ export const users = pgTable("users", {
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
   subscriptionType: text("subscription_type").notNull().default("free"),
+  subscriptionExpiresAt: timestamp("subscription_expires_at", { withTimezone: true }),
+  dailyMessageCount: integer("daily_message_count").notNull().default(0),
+  lastMessageDate: text("last_message_date"),
   conversationCount: integer("conversation_count").notNull().default(0),
   imageCount: integer("image_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -22,6 +25,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   conversationCount: true,
   imageCount: true,
+  dailyMessageCount: true,
+  lastMessageDate: true,
 });
 
 export type User = typeof users.$inferSelect;

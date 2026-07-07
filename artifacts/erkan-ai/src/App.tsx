@@ -3,6 +3,9 @@ import LoginScreen from "./pages/LoginScreen";
 import HomeScreen from "./pages/HomeScreen";
 import ChatScreen from "./pages/ChatScreen";
 import ProfileScreen from "./pages/ProfileScreen";
+import PlansScreen from "./pages/PlansScreen";
+import ActivateScreen from "./pages/ActivateScreen";
+import AdminPanel from "./pages/AdminPanel";
 import { authMe, type User } from "./lib/api";
 
 function CircuitPattern({ side }: { side: "left" | "right" }) {
@@ -40,7 +43,10 @@ type AppScreen =
   | { name: "login" }
   | { name: "home" }
   | { name: "chat"; data?: { conversationId?: number; initialMessage?: string; mode?: string } }
-  | { name: "profile" };
+  | { name: "profile" }
+  | { name: "plans" }
+  | { name: "activate"; data?: { plan?: string } }
+  | { name: "admin" };
 
 export default function App() {
   const [pct, setPct] = useState(0);
@@ -62,20 +68,10 @@ export default function App() {
         rafRef.current = requestAnimationFrame(animate);
       } else {
         setPct(100);
-        // Check existing session before showing login
         authMe().then(u => {
-          if (u) {
-            setUser(u);
-            setSplashOut(true);
-            setTimeout(() => setScreen({ name: "home" }), 500);
-          } else {
-            setSplashOut(true);
-            setTimeout(() => setScreen({ name: "login" }), 500);
-          }
-        }).catch(() => {
-          setSplashOut(true);
-          setTimeout(() => setScreen({ name: "login" }), 500);
-        });
+          if (u) { setUser(u); setSplashOut(true); setTimeout(() => setScreen({ name: "home" }), 500); }
+          else { setSplashOut(true); setTimeout(() => setScreen({ name: "login" }), 500); }
+        }).catch(() => { setSplashOut(true); setTimeout(() => setScreen({ name: "login" }), 500); });
       }
     };
     rafRef.current = requestAnimationFrame(animate);
@@ -83,47 +79,50 @@ export default function App() {
   }, [screen.name]);
 
   const navigate = (dest: string, data?: unknown) => {
-    if (dest === "chat") setScreen({ name: "chat", data: data as { conversationId?: number; initialMessage?: string; mode?: string } });
+    if (dest === "chat") setScreen({ name: "chat", data: data as AppScreen & { name: "chat" }["data"] });
     else if (dest === "profile") setScreen({ name: "profile" });
+    else if (dest === "plans") setScreen({ name: "plans" });
+    else if (dest === "activate") setScreen({ name: "activate", data: data as { plan?: string } });
+    else if (dest === "admin") setScreen({ name: "admin" });
     else setScreen({ name: "home" });
   };
 
-  const handleLogin = (u: User) => {
-    setUser(u);
-    setScreen({ name: "home" });
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setScreen({ name: "login" });
-  };
+  const handleLogin = (u: User) => { setUser(u); setScreen({ name: "home" }); };
+  const handleLogout = () => { setUser(null); setScreen({ name: "login" }); };
+  const handleUserUpdate = (u: User) => setUser(u);
 
   if (screen.name === "login") return <LoginScreen onLogin={handleLogin} />;
-
-  if (screen.name === "home") return (
-    <HomeScreen
-      onNavigate={navigate}
-      user={user}
-    />
-  );
-
+  if (screen.name === "home") return <HomeScreen onNavigate={navigate} user={user} />;
   if (screen.name === "chat") return (
     <ChatScreen
       onBack={() => setScreen({ name: "home" })}
       conversationId={screen.data?.conversationId}
       initialMessage={screen.data?.initialMessage}
       mode={screen.data?.mode ?? "chat"}
+      user={user}
+      onNavigate={navigate}
     />
   );
-
-  if (screen.name === "profile" && user) return (
+  if (screen.name === "profile") return (
     <ProfileScreen
-      user={user}
-      onUserUpdate={setUser}
+      user={user!}
+      onUserUpdate={handleUserUpdate}
       onLogout={handleLogout}
       onBack={() => setScreen({ name: "home" })}
+      onNavigate={navigate}
     />
   );
+  if (screen.name === "plans") return (
+    <PlansScreen user={user} onNavigate={navigate} onBack={() => setScreen({ name: "home" })} />
+  );
+  if (screen.name === "activate") return (
+    <ActivateScreen
+      user={user}
+      onBack={() => setScreen({ name: "plans" })}
+      onActivated={(u) => { setUser(u); setScreen({ name: "home" }); }}
+    />
+  );
+  if (screen.name === "admin") return <AdminPanel onBack={() => setScreen({ name: "home" })} />;
 
   return (
     <div className={`splash-root ${splashOut ? "splash-fade-out" : ""}`}>
@@ -132,12 +131,9 @@ export default function App() {
       <div className="bg-radial-bottom" />
       <div className="circuit-left"><CircuitPattern side="left" /></div>
       <div className="circuit-right"><CircuitPattern side="right" /></div>
-
       <div className="content-area">
         <div className="logo-wrapper">
-          <div className="halo-outer" />
-          <div className="halo-mid" />
-          <div className="ring-spin" />
+          <div className="halo-outer" /><div className="halo-mid" /><div className="ring-spin" />
           <div className="logo-glass">
             <img src="/erkan-ai-logo.png" alt="ERKAN AI Logo" className="logo-img" draggable={false} />
           </div>
@@ -146,9 +142,7 @@ export default function App() {
           <span className="app-name-erkan">ERKAN </span>
           <span className="app-name-ai">AI</span>
         </div>
-        <p className="slogan-arabic anim-fade-up" dir="rtl" style={{ animationDelay: "0.28s" }}>
-          ذكاء اصطناعي بلا حدود
-        </p>
+        <p className="slogan-arabic anim-fade-up" dir="rtl" style={{ animationDelay: "0.28s" }}>ذكاء اصطناعي بلا حدود</p>
         <div className="loader-section anim-fade-up" style={{ animationDelay: "0.42s" }}>
           <div className="loading-bar-track">
             <div className="loading-bar-fill" style={{ width: `${pct}%` }} />
