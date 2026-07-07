@@ -1964,218 +1964,354 @@ html, body, #root {
 
 
 /* ════════════════════════════════════════════
-   PROFILE SCREEN
+   PROFILE SCREEN v2
 ════════════════════════════════════════════ */
-.prof-root {
+.prf2-root {
   position: relative; width: 100%; height: 100dvh;
   background: #070B17; display: flex; flex-direction: column; overflow: hidden;
 }
-.prof-bg {
+.prf2-bg {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 30% at 50% 0%, rgba(138,46,255,0.09) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 25% at 80% 90%, rgba(30,136,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 35% at 50% 0%, rgba(100,46,200,0.11) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 25% at 85% 95%, rgba(30,136,255,0.08) 0%, transparent 55%),
     #070B17;
 }
+.prf2-bg-radial {
+  position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
+  width: 340px; height: 340px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(80,30,160,0.06) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
 
-/* Header */
-.prof-header {
+/* ── prf2 header ─────────────────────────── */
+.prf2-header {
   position: relative; z-index: 20; flex-shrink: 0;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 48px 16px 12px;
-  background: linear-gradient(to bottom, rgba(7,11,23,0.98) 0%, rgba(7,11,23,0.85) 65%, transparent 100%);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  padding: 48px 16px 14px;
+  background: linear-gradient(to bottom, rgba(7,11,23,0.98) 60%, transparent 100%);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
 }
-.prof-icon-btn {
+.prf2-back-btn {
   width: 40px; height: 40px; border-radius: 50%;
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: rgba(190,205,240,0.85);
-  transition: all 0.2s;
+  cursor: pointer; color: rgba(190,205,240,0.85); transition: all 0.2s;
 }
-.prof-icon-btn:hover { background: rgba(30,136,255,0.12); border-color: rgba(30,136,255,0.30); transform: scale(1.05); }
-.prof-header-title {
+.prf2-back-btn:hover { background: rgba(30,136,255,0.12); border-color: rgba(30,136,255,0.35); transform: scale(1.05); }
+.prf2-header-title {
   font-family: "Cairo", sans-serif; font-size: 1.05rem; font-weight: 700;
-  color: rgba(220,230,255,0.92);
+  color: rgba(220,232,255,0.92);
 }
-
-/* Scroll */
-.prof-scroll {
-  flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; z-index: 5;
-  padding: 8px 0; scrollbar-width: none;
-}
-.prof-scroll::-webkit-scrollbar { display: none; }
-
-/* Identity */
-.prof-identity {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 20px 20px;
-}
-.prof-avatar-wrap {
-  position: relative; width: 86px; height: 86px; flex-shrink: 0;
-  border-radius: 50%; cursor: pointer; overflow: hidden;
-  border: 2.5px solid rgba(30,136,255,0.30);
-  box-shadow: 0 0 20px rgba(30,136,255,0.14);
-}
-.prof-avatar-img { width: 100%; height: 100%; object-fit: cover; }
-.prof-avatar-initials {
-  width: 100%; height: 100%;
-  background: linear-gradient(135deg, #1a2d5a, #2d1060);
+.prf2-edit-top-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(30,136,255,0.10); border: 1px solid rgba(30,136,255,0.25);
   display: flex; align-items: center; justify-content: center;
-  font-family: "Inter", sans-serif; font-size: 1.6rem; font-weight: 800; color: #fff;
+  cursor: pointer; color: rgba(30,136,255,0.85); transition: all 0.2s;
 }
-.prof-avatar-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+.prf2-edit-top-btn:hover { background: rgba(30,136,255,0.20); transform: scale(1.05); }
+
+/* ── scroll ─────────────────────────────── */
+.prf2-scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; z-index: 5;
+  scrollbar-width: none;
+}
+.prf2-scroll::-webkit-scrollbar { display: none; }
+
+/* ── hero ────────────────────────────────── */
+.prf2-hero {
+  position: relative; margin: 0 16px 16px; border-radius: 24px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.prf2-hero-cover {
+  position: absolute; inset: 0;
+}
+.prf2-hero-body {
+  position: relative; z-index: 2; padding: 24px 20px;
+  display: flex; align-items: center; gap: 18px;
+}
+
+/* avatar */
+.prf2-avatar-wrap {
+  position: relative; width: 88px; height: 88px; flex-shrink: 0;
+  border-radius: 50%; cursor: pointer; overflow: hidden;
+  border: 2.5px solid rgba(255,255,255,0.18);
+  transition: box-shadow 0.3s;
+}
+.prf2-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.prf2-avatar-letters {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a2d6a, #3a1080);
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Inter", sans-serif; font-size: 1.7rem; font-weight: 900; color: #fff;
+  letter-spacing: -1px;
+}
+.prf2-avatar-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.50);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.2s;
 }
-.prof-avatar-wrap:hover .prof-avatar-overlay { opacity: 1; }
-.prof-avatar-wrap:hover .prof-avatar-overlay.loading { opacity: 1; }
-.prof-avatar-spinner { width: 22px; height: 22px; border: 2.5px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: profileSpin 0.7s linear infinite; }
-@keyframes profileSpin { to { transform: rotate(360deg); } }
+.prf2-avatar-wrap:hover .prf2-avatar-overlay,
+.prf2-avatar-wrap:hover .prf2-avatar-overlay.busy { opacity: 1; }
 
-.prof-identity-info { flex: 1; min-width: 0; }
-.prof-user-name { font-family: "Cairo", sans-serif; font-size: 1.1rem; font-weight: 700; color: rgba(225,235,255,0.95); margin-bottom: 2px; }
-.prof-user-handle { font-family: "Inter", sans-serif; font-size: 0.78rem; color: rgba(30,136,255,0.70); margin-bottom: 6px; }
-.prof-user-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.prof-sub-badge { font-family: "Inter", sans-serif; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 20px; }
-.sub-free { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: rgba(200,210,240,0.65); }
-.sub-pro { background: rgba(30,136,255,0.15); border: 1px solid rgba(30,136,255,0.35); color: #1E88FF; }
-.sub-max { background: linear-gradient(135deg, rgba(138,46,255,0.25), rgba(245,158,11,0.20)); border: 1px solid rgba(138,46,255,0.45); color: #c084fc; }
-.prof-user-bio-tag { font-family: "Cairo", sans-serif; font-size: 0.65rem; color: rgba(130,155,210,0.45); }
+.prf2-hero-info { flex: 1; min-width: 0; }
+.prf2-hero-name {
+  font-family: "Cairo", sans-serif; font-size: 1.15rem; font-weight: 800;
+  color: rgba(230,240,255,0.97); margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prf2-hero-handle {
+  font-family: "Inter", sans-serif; font-size: 0.78rem;
+  color: rgba(120,160,255,0.70); margin-bottom: 8px;
+}
+.prf2-hero-bio {
+  font-family: "Cairo", sans-serif; font-size: 0.78rem;
+  color: rgba(160,180,230,0.60); line-height: 1.4; margin-bottom: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.prf2-plan-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: "Inter", sans-serif; font-size: 0.68rem; font-weight: 800;
+  letter-spacing: 0.08em; padding: 4px 10px; border-radius: 20px;
+  transition: box-shadow 0.3s;
+}
 
-/* Stats */
-.prof-stats-row { display: flex; gap: 10px; padding: 0 18px 20px; }
-.prof-stat-card {
-  flex: 1; background: rgba(14,20,45,0.75); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 16px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+/* ── stats ───────────────────────────────── */
+.prf2-stats {
+  display: flex; gap: 10px; padding: 0 16px 16px;
+}
+.prf2-stat {
+  flex: 1; background: rgba(12,18,42,0.82); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px; padding: 14px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
   backdrop-filter: blur(12px);
 }
-.prof-stat-icon { font-size: 1.2rem; }
-.prof-stat-value { font-family: "Inter", sans-serif; font-size: 1.3rem; font-weight: 800; color: #fff; }
-.prof-stat-label { font-family: "Cairo", sans-serif; font-size: 0.68rem; color: rgba(130,155,215,0.50); }
-
-/* Sections */
-.prof-section { padding: 0 18px 16px; }
-.prof-section-title { font-family: "Cairo", sans-serif; font-size: 0.80rem; font-weight: 700; color: rgba(130,155,215,0.55); margin-bottom: 10px; letter-spacing: 0.05em; }
-
-/* Info card */
-.prof-info-card { background: rgba(12,18,42,0.80); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; overflow: hidden; backdrop-filter: blur(12px); }
-.prof-info-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-.prof-info-row:last-child { border-bottom: none; }
-.prof-info-left { display: flex; align-items: center; gap: 8px; }
-.prof-info-icon { font-size: 1rem; }
-.prof-info-label { font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(160,175,220,0.60); }
-.prof-info-value { font-family: "Cairo", sans-serif; font-size: 0.82rem; color: rgba(215,228,252,0.88); text-align: left; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Edit card */
-.prof-edit-card { background: rgba(12,18,42,0.80); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 16px; backdrop-filter: blur(12px); display: flex; flex-direction: column; gap: 12px; }
-.prof-field { display: flex; flex-direction: column; gap: 5px; }
-.prof-field-label { font-family: "Cairo", sans-serif; font-size: 0.75rem; font-weight: 600; color: rgba(150,175,225,0.60); }
-.prof-field-input {
-  background: rgba(8,14,34,0.85); border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 12px; padding: 10px 13px;
-  font-family: "Cairo", sans-serif; font-size: 0.88rem; color: rgba(215,228,252,0.90);
-  outline: none; width: 100%; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s;
+.prf2-stat-icon { font-size: 1.2rem; margin-bottom: 2px; }
+.prf2-stat-val {
+  font-family: "Inter", sans-serif; font-size: 1.35rem; font-weight: 900; color: #fff;
 }
-.prof-field-input:focus { border-color: rgba(30,136,255,0.40); box-shadow: 0 0 0 3px rgba(30,136,255,0.08); }
-.prof-field-textarea {
-  background: rgba(8,14,34,0.85); border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 12px; padding: 10px 13px; resize: none;
-  font-family: "Cairo", sans-serif; font-size: 0.88rem; color: rgba(215,228,252,0.90);
-  outline: none; width: 100%; box-sizing: border-box; transition: border-color 0.2s;
+.prf2-stat-lbl {
+  font-family: "Cairo", sans-serif; font-size: 0.66rem; color: rgba(120,150,210,0.50);
+  text-align: center;
 }
-.prof-field-textarea:focus { border-color: rgba(30,136,255,0.40); }
-.prof-field-prefix-wrap { position: relative; }
-.prof-field-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: "Inter", sans-serif; font-size: 0.88rem; color: rgba(30,136,255,0.60); pointer-events: none; }
-.prof-save-btn {
-  background: linear-gradient(135deg, #1E88FF, #6c3eff);
-  color: #fff; font-family: "Cairo", sans-serif; font-size: 0.92rem; font-weight: 700;
-  border: none; border-radius: 14px; padding: 12px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  box-shadow: 0 0 18px rgba(30,136,255,0.30); transition: all 0.2s; margin-top: 4px;
+
+/* ── sections ────────────────────────────── */
+.prf2-section { padding: 0 16px 14px; }
+.prf2-section-title {
+  font-family: "Cairo", sans-serif; font-size: 0.74rem; font-weight: 700;
+  color: rgba(120,150,210,0.50); margin-bottom: 10px; letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
-.prof-save-btn:hover:not(.disabled) { transform: translateY(-1px); box-shadow: 0 0 26px rgba(30,136,255,0.45); }
-.prof-save-btn.disabled { opacity: 0.40; cursor: not-allowed; }
-.prof-btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: profileSpin 0.7s linear infinite; }
 
-/* Settings card */
-.prof-settings-card { background: rgba(12,18,42,0.80); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; overflow: hidden; backdrop-filter: blur(12px); }
-.prof-setting-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: none; border: none; cursor: pointer; text-align: right; transition: background 0.15s; }
-.prof-setting-row:hover { background: rgba(30,136,255,0.06); }
-.prof-setting-icon-wrap { font-size: 1.1rem; flex-shrink: 0; }
-.prof-setting-text { flex: 1; }
-.prof-setting-label { display: block; font-family: "Cairo", sans-serif; font-size: 0.85rem; color: rgba(215,228,252,0.88); }
-.prof-setting-sub { display: block; font-family: "Cairo", sans-serif; font-size: 0.70rem; color: rgba(130,155,210,0.45); margin-top: 2px; }
-.prof-setting-chevron { color: rgba(130,155,210,0.35); flex-shrink: 0; }
-.prof-setting-divider { height: 1px; background: rgba(255,255,255,0.04); margin: 0 16px; }
-
-/* Upgrade banner */
-.prof-upgrade-banner {
-  position: relative; margin: 0 18px 18px;
-  background: linear-gradient(135deg, rgba(30,18,80,0.95), rgba(15,8,50,0.98));
-  border: 1px solid rgba(138,46,255,0.35); border-radius: 18px; padding: 16px;
-  display: flex; align-items: center; gap: 12px; overflow: hidden;
-  box-shadow: 0 0 28px rgba(138,46,255,0.10); cursor: pointer;
+/* ── subscription card ───────────────────── */
+.prf2-sub-card {
+  background: rgba(10,15,38,0.88); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 18px; backdrop-filter: blur(14px);
+  transition: border-color 0.3s;
 }
-.prof-upgrade-glow { position: absolute; top: -20px; left: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(138,46,255,0.18) 0%, transparent 70%); pointer-events: none; }
-.prof-upgrade-crown { font-size: 1.8rem; flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(245,158,11,0.4)); }
-.prof-upgrade-text { flex: 1; }
-.prof-upgrade-title { font-family: "Inter", sans-serif; font-size: 0.88rem; font-weight: 800; color: #fff; margin-bottom: 3px; }
-.prof-upgrade-desc { font-family: "Cairo", sans-serif; font-size: 0.70rem; color: rgba(180,160,235,0.65); line-height: 1.4; }
-.prof-upgrade-btn { background: linear-gradient(135deg, #6c3eff, #8A2EFF); color: #fff; font-family: "Cairo", sans-serif; font-size: 0.75rem; font-weight: 700; border: none; border-radius: 10px; padding: 8px 14px; flex-shrink: 0; cursor: pointer; box-shadow: 0 0 12px rgba(138,46,255,0.35); }
+.prf2-sub-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.prf2-sub-plan-name {
+  font-family: "Cairo", sans-serif; font-size: 1.0rem; font-weight: 800; margin-bottom: 4px;
+}
+.prf2-sub-exp {
+  font-family: "Cairo", sans-serif; font-size: 0.73rem; color: rgba(140,165,220,0.55);
+}
+.prf2-sub-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 
-/* Danger zone */
-.prof-danger-section { padding: 0 18px; display: flex; flex-direction: column; gap: 10px; }
-.prof-logout-btn {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+/* daily usage */
+.prf2-usage { margin-bottom: 14px; }
+.prf2-usage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.prf2-usage-label { font-family: "Cairo", sans-serif; font-size: 0.73rem; color: rgba(140,165,220,0.55); }
+.prf2-usage-nums { font-family: "Inter", sans-serif; font-size: 0.75rem; font-weight: 700; }
+.prf2-usage-track {
+  width: 100%; height: 5px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden;
+}
+.prf2-usage-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+.prf2-usage-remain {
+  font-family: "Cairo", sans-serif; font-size: 0.69rem; color: rgba(120,150,200,0.45);
+  margin-top: 5px; text-align: right;
+}
+
+.prf2-sub-actions { display: flex; gap: 10px; }
+.prf2-sub-btn {
+  flex: 1; padding: 11px 10px; border-radius: 13px;
+  font-family: "Cairo", sans-serif; font-size: 0.83rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; text-align: center; border: none;
+}
+.prf2-sub-btn.outline {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(200,215,250,0.80);
+}
+.prf2-sub-btn.outline:hover { background: rgba(255,255,255,0.10); }
+.prf2-sub-btn.primary { color: #fff; box-shadow: 0 4px 20px rgba(80,40,200,0.30); }
+.prf2-sub-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 26px rgba(80,40,200,0.40); }
+
+/* ── info card ───────────────────────────── */
+.prf2-info-card {
+  background: rgba(10,15,38,0.88); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; overflow: hidden; backdrop-filter: blur(14px);
+}
+.prf2-info-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
+.prf2-info-left { display: flex; align-items: center; gap: 8px; }
+.prf2-info-icon { font-size: 1.0rem; }
+.prf2-info-label { font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(150,172,220,0.60); }
+.prf2-info-val {
+  font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(210,225,252,0.88);
+  max-width: 52%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+}
+
+/* ── menu card ───────────────────────────── */
+.prf2-menu-card {
+  background: rgba(10,15,38,0.88); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; overflow: hidden; backdrop-filter: blur(14px);
+}
+.prf2-menu-row {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 15px 16px; background: none; border: none; cursor: pointer;
+  text-align: right; transition: background 0.15s;
+}
+.prf2-menu-row:hover { background: rgba(30,100,255,0.06); }
+.prf2-menu-icon { font-size: 1.15rem; flex-shrink: 0; }
+.prf2-menu-text { flex: 1; min-width: 0; }
+.prf2-menu-label { display: block; font-family: "Cairo", sans-serif; font-size: 0.86rem; color: rgba(215,228,255,0.90); }
+.prf2-menu-sub { display: block; font-family: "Cairo", sans-serif; font-size: 0.70rem; color: rgba(120,145,210,0.45); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prf2-menu-chevron { color: rgba(120,145,200,0.30); flex-shrink: 0; }
+.prf2-menu-divider { height: 1px; background: rgba(255,255,255,0.04); margin: 0 16px; }
+
+/* ── danger ──────────────────────────────── */
+.prf2-danger { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.prf2-logout-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
   background: rgba(30,136,255,0.08); border: 1px solid rgba(30,136,255,0.22);
-  border-radius: 14px; padding: 13px;
-  font-family: "Cairo", sans-serif; font-size: 0.92rem; font-weight: 600; color: rgba(30,136,255,0.85);
-  cursor: pointer; transition: all 0.2s;
+  border-radius: 16px; padding: 14px;
+  font-family: "Cairo", sans-serif; font-size: 0.92rem; font-weight: 700;
+  color: rgba(30,136,255,0.88); cursor: pointer; transition: all 0.2s;
 }
-.prof-logout-btn:hover { background: rgba(30,136,255,0.14); border-color: rgba(30,136,255,0.40); }
-.prof-delete-account-btn {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.20);
-  border-radius: 14px; padding: 13px;
-  font-family: "Cairo", sans-serif; font-size: 0.92rem; font-weight: 600; color: rgba(239,68,68,0.75);
-  cursor: pointer; transition: all 0.2s;
+.prf2-logout-btn:hover { background: rgba(30,136,255,0.14); border-color: rgba(30,136,255,0.40); }
+.prf2-logout-btn:disabled { opacity: 0.5; }
+.prf2-delete-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+  background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.18);
+  border-radius: 16px; padding: 14px;
+  font-family: "Cairo", sans-serif; font-size: 0.92rem; font-weight: 700;
+  color: rgba(239,68,68,0.70); cursor: pointer; transition: all 0.2s;
 }
-.prof-delete-account-btn:hover { background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.40); color: rgba(239,68,68,0.95); }
+.prf2-delete-btn:hover { background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.40); color: rgba(239,68,68,0.95); }
 
-/* Toast */
-.prof-toast {
+/* ── footer ──────────────────────────────── */
+.prf2-footer {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 4px 0 12px;
+}
+.prf2-footer-logo {
+  font-family: "Inter", sans-serif; font-size: 0.72rem; font-weight: 800;
+  background: linear-gradient(135deg,#1e88ff,#8a2eff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.prf2-footer-ver { font-family: "Inter", sans-serif; font-size: 0.70rem; color: rgba(100,120,175,0.35); }
+
+/* ── toast ───────────────────────────────── */
+.prf2-toast {
   position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-  z-index: 100; padding: 10px 20px; border-radius: 28px;
+  z-index: 200; padding: 11px 22px; border-radius: 28px;
   font-family: "Cairo", sans-serif; font-size: 0.85rem; font-weight: 600;
-  display: flex; align-items: center; gap: 8px; white-space: nowrap;
-  backdrop-filter: blur(16px); box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  animation: toastIn 0.3s cubic-bezier(.22,.68,0,1.2);
+  display: flex; align-items: center; gap: 9px; white-space: nowrap;
+  color: #fff; backdrop-filter: blur(20px);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.40);
+  animation: prf2ToastIn 0.32s cubic-bezier(.22,.68,0,1.2);
 }
-@keyframes toastIn { from { transform: translateX(-50%) translateY(-12px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-.prof-toast-success { background: rgba(22,163,74,0.90); border: 1px solid rgba(34,197,94,0.4); color: #fff; }
-.prof-toast-error { background: rgba(185,28,28,0.90); border: 1px solid rgba(239,68,68,0.4); color: #fff; }
-.prof-toast-info { background: rgba(30,58,138,0.90); border: 1px solid rgba(30,136,255,0.4); color: #fff; }
-.prof-toast-icon { font-size: 0.85rem; font-weight: 900; }
+@keyframes prf2ToastIn {
+  from { transform: translateX(-50%) translateY(-14px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+.prf2-toast-icon { font-size: 0.85rem; font-weight: 900; flex-shrink: 0; }
 
-/* Modals */
-.prof-modal-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,0.70); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s; }
-.prof-modal { position: relative; width: 100%; max-width: 480px; background: linear-gradient(160deg, #0f0b28 0%, #080518 100%); border: 1px solid rgba(255,255,255,0.10); border-radius: 24px 24px 0 0; padding: 28px 22px 38px; animation: slideUp 0.3s cubic-bezier(.22,.68,0,1.2); }
-.prof-modal-title { font-family: "Cairo", sans-serif; font-size: 1.05rem; font-weight: 700; color: rgba(225,235,255,0.95); margin-bottom: 16px; text-align: center; }
-.prof-modal-desc { font-family: "Cairo", sans-serif; font-size: 0.82rem; color: rgba(160,175,220,0.65); text-align: center; line-height: 1.6; margin-bottom: 20px; }
-.prof-modal-err { background: rgba(185,28,28,0.20); border: 1px solid rgba(239,68,68,0.30); border-radius: 10px; padding: 8px 12px; font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(252,165,165,0.90); margin-bottom: 12px; }
-.prof-modal-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-.prof-modal-btns { display: flex; gap: 10px; margin-top: 18px; }
-.prof-modal-cancel { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px; font-family: "Cairo", sans-serif; font-size: 0.88rem; color: rgba(200,210,240,0.70); cursor: pointer; transition: all 0.2s; }
-.prof-modal-cancel:hover { background: rgba(255,255,255,0.11); }
-.prof-modal-save { flex: 1; background: linear-gradient(135deg,#1E88FF,#6c3eff); border: none; border-radius: 12px; padding: 12px; font-family: "Cairo", sans-serif; font-size: 0.88rem; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 0 14px rgba(30,136,255,0.30); transition: all 0.2s; }
-.prof-modal-save:hover:not(:disabled) { transform: translateY(-1px); }
-.prof-modal-save:disabled { opacity: 0.5; cursor: not-allowed; }
-.prof-modal-delete { flex: 1; background: linear-gradient(135deg,#dc2626,#b91c1c); border: none; border-radius: 12px; padding: 12px; font-family: "Cairo", sans-serif; font-size: 0.88rem; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 0 14px rgba(239,68,68,0.25); transition: all 0.2s; }
-.prof-modal-delete:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 20px rgba(239,68,68,0.40); }
-.prof-modal-delete:disabled { opacity: 0.5; cursor: not-allowed; }
-.prof-delete-icon { text-align: center; font-size: 2.5rem; margin-bottom: 8px; }
+/* ── spinner ─────────────────────────────── */
+.prf2-spin {
+  display: inline-block; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+  animation: prf2Spin 0.65s linear infinite;
+  vertical-align: middle;
+}
+@keyframes prf2Spin { to { transform: rotate(360deg); } }
+
+/* ── modals ──────────────────────────────── */
+.prf2-modal-bg {
+  position: fixed; inset: 0; z-index: 120;
+  background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fadeIn 0.18s;
+}
+.prf2-modal {
+  position: relative; width: 100%; max-width: 480px;
+  background: linear-gradient(160deg, #0f0c2a 0%, #08051c 100%);
+  border: 1px solid rgba(255,255,255,0.10); border-radius: 26px 26px 0 0;
+  padding: 10px 22px 44px;
+  animation: slideUp 0.30s cubic-bezier(.22,.68,0,1.2);
+}
+.prf2-modal-handle {
+  width: 38px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.15); margin: 0 auto 20px;
+}
+.prf2-modal-title {
+  font-family: "Cairo", sans-serif; font-size: 1.05rem; font-weight: 800;
+  color: rgba(225,235,255,0.95); text-align: center; margin-bottom: 18px;
+}
+.prf2-modal-desc {
+  font-family: "Cairo", sans-serif; font-size: 0.82rem;
+  color: rgba(155,175,225,0.65); text-align: center; line-height: 1.65; margin-bottom: 22px;
+}
+.prf2-modal-err {
+  background: rgba(185,28,28,0.18); border: 1px solid rgba(239,68,68,0.28);
+  border-radius: 11px; padding: 9px 13px;
+  font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(252,165,165,0.90);
+  margin-bottom: 12px; direction: rtl;
+}
+.prf2-modal-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 11px; }
+.prf2-modal-label {
+  font-family: "Cairo", sans-serif; font-size: 0.75rem; font-weight: 600;
+  color: rgba(140,170,225,0.55); direction: rtl;
+}
+.prf2-modal-input {
+  background: rgba(8,12,32,0.90); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 13px; padding: 11px 14px;
+  font-family: "Cairo", sans-serif; font-size: 0.88rem; color: rgba(215,228,252,0.92);
+  outline: none; width: 100%; box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s; direction: rtl;
+}
+.prf2-modal-input:focus { border-color: rgba(30,136,255,0.45); box-shadow: 0 0 0 3px rgba(30,136,255,0.10); }
+.prf2-modal-row { display: flex; gap: 10px; margin-top: 20px; }
+.prf2-modal-cancel {
+  flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px; padding: 13px;
+  font-family: "Cairo", sans-serif; font-size: 0.88rem; color: rgba(190,205,240,0.70);
+  cursor: pointer; transition: all 0.2s;
+}
+.prf2-modal-cancel:hover { background: rgba(255,255,255,0.11); }
+.prf2-modal-confirm {
+  flex: 1; background: linear-gradient(135deg,#1E88FF,#6c3eff); border: none;
+  border-radius: 14px; padding: 13px;
+  font-family: "Cairo", sans-serif; font-size: 0.88rem; font-weight: 700; color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  box-shadow: 0 0 16px rgba(30,136,255,0.28); transition: all 0.2s;
+}
+.prf2-modal-confirm:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 22px rgba(30,136,255,0.40); }
+.prf2-modal-confirm:disabled { opacity: 0.50; cursor: not-allowed; }
+.prf2-modal-delete-btn {
+  flex: 1; background: linear-gradient(135deg,#dc2626,#991b1b); border: none;
+  border-radius: 14px; padding: 13px;
+  font-family: "Cairo", sans-serif; font-size: 0.88rem; font-weight: 700; color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  box-shadow: 0 0 16px rgba(239,68,68,0.22); transition: all 0.2s;
+}
+.prf2-modal-delete-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 24px rgba(239,68,68,0.38); }
+.prf2-modal-delete-btn:disabled { opacity: 0.50; cursor: not-allowed; }
+.prf2-delete-emoji { text-align: center; font-size: 2.8rem; margin-bottom: 6px; }
 
 /* login error banner */
 .login-error-banner { display: flex; align-items: center; gap: 8px; background: rgba(185,28,28,0.18); border: 1px solid rgba(239,68,68,0.28); border-radius: 10px; padding: 9px 12px; font-family: "Cairo", sans-serif; font-size: 0.80rem; color: rgba(252,165,165,0.90); margin-bottom: 4px; }

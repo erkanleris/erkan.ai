@@ -79,7 +79,7 @@ export default function App() {
   }, [screen.name]);
 
   const navigate = (dest: string, data?: unknown) => {
-    if (dest === "chat") setScreen({ name: "chat", data: data as AppScreen & { name: "chat" }["data"] });
+    if (dest === "chat") setScreen({ name: "chat", data: data as { conversationId?: number; initialMessage?: string; mode?: string } });
     else if (dest === "profile") setScreen({ name: "profile" });
     else if (dest === "plans") setScreen({ name: "plans" });
     else if (dest === "activate") setScreen({ name: "activate", data: data as { plan?: string } });

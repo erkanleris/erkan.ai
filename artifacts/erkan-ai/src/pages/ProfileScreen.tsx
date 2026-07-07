@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { getProfile, updateProfile, changePassword, deleteAccount, authLogout, type User } from "../lib/api";
+import {
+  getProfile, updateProfile, changePassword, deleteAccount,
+  authLogout, getSubscriptionStatus,
+  type User, type SubscriptionStatus,
+} from "../lib/api";
 
 interface Props {
   user: User;
@@ -9,57 +13,86 @@ interface Props {
   onNavigate?: (screen: string, data?: unknown) => void;
 }
 
-/* ── Toast ─────────────────────────────────── */
+/* ─── helpers ────────────────────────────── */
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
+}
+function daysSince(iso: string) {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+function planLabel(p: string) {
+  return p === "pro_max" ? "PRO MAX" : p === "pro" ? "PRO" : "مجاني";
+}
+function planColor(p: string) {
+  return p === "pro_max" ? "#a855f7" : p === "pro" ? "#1e88ff" : "#64748b";
+}
+function planGlow(p: string) {
+  return p === "pro_max"
+    ? "0 0 24px rgba(168,85,247,0.4)"
+    : p === "pro"
+    ? "0 0 24px rgba(30,136,255,0.4)"
+    : "none";
+}
+function planEmoji(p: string) {
+  return p === "pro_max" ? "💎" : p === "pro" ? "👑" : "⚡";
+}
+
+/* ─── Toast ────────────────────────────── */
 type ToastType = "success" | "error" | "info";
 function Toast({ msg, type, onDone }: { msg: string; type: ToastType; onDone: () => void }) {
-  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onDone, 3200); return () => clearTimeout(t); }, []);
+  const colors: Record<ToastType, string> = {
+    success: "rgba(22,163,74,0.95)",
+    error: "rgba(185,28,28,0.95)",
+    info: "rgba(30,58,138,0.95)",
+  };
+  const icons: Record<ToastType, string> = { success: "✓", error: "✕", info: "ℹ" };
   return (
-    <div className={`prof-toast prof-toast-${type}`} dir="rtl">
-      <span className="prof-toast-icon">
-        {type === "success" ? "✓" : type === "error" ? "✕" : "ℹ"}
-      </span>
+    <div className="prf2-toast" style={{ background: colors[type] }} dir="rtl">
+      <span className="prf2-toast-icon">{icons[type]}</span>
       {msg}
     </div>
   );
 }
 
-/* ── Subscription badge ─────────────────────── */
-function SubBadge({ type }: { type: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    free: { label: "مجاني", cls: "sub-free" },
-    pro: { label: "PRO", cls: "sub-pro" },
-    pro_max: { label: "PRO MAX", cls: "sub-max" },
-  };
-  const m = map[type] ?? map["free"]!;
-  return <span className={`prof-sub-badge ${m.cls}`}>{m.label}</span>;
+/* ─── Spinner ──────────────────────────── */
+function Spin({ size = 16 }: { size?: number }) {
+  return <span className="prf2-spin" style={{ width: size, height: size }} />;
 }
 
-/* ── Avatar with upload ─────────────────────── */
-function AvatarUpload({ avatarUrl, name, onUpload }: { avatarUrl: string | null; name: string; onUpload: (base64: string) => void }) {
+/* ─── Avatar ───────────────────────────── */
+function AvatarUpload({
+  avatarUrl, name, plan,
+  onUpload,
+}: {
+  avatarUrl: string | null; name: string; plan: string;
+  onUpload: (b64: string) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(avatarUrl);
-  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(avatarUrl);
+  const [busy, setBusy] = useState(false);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
+    setBusy(true);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const src = ev.target?.result as string;
       const img = new Image();
       img.onload = () => {
+        const S = 300;
         const canvas = document.createElement("canvas");
-        const SIZE = 240;
-        canvas.width = SIZE; canvas.height = SIZE;
+        canvas.width = S; canvas.height = S;
         const ctx = canvas.getContext("2d")!;
-        const ratio = Math.max(SIZE / img.width, SIZE / img.height);
-        const w = img.width * ratio; const h = img.height * ratio;
-        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-        const base64 = canvas.toDataURL("image/jpeg", 0.85);
-        setPreview(base64);
-        onUpload(base64);
-        setUploading(false);
+        const r = Math.max(S / img.width, S / img.height);
+        const w = img.width * r; const h = img.height * r;
+        ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+        const b64 = canvas.toDataURL("image/jpeg", 0.88);
+        setPreview(b64);
+        onUpload(b64);
+        setBusy(false);
       };
       img.src = src;
     };
@@ -67,59 +100,68 @@ function AvatarUpload({ avatarUrl, name, onUpload }: { avatarUrl: string | null;
     e.target.value = "";
   };
 
-  const initials = name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const initials = name.split(" ").map(w => w[0] ?? "").join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="prof-avatar-wrap" onClick={() => inputRef.current?.click()} title="تغيير الصورة">
+    <div
+      className="prf2-avatar-wrap"
+      style={{ boxShadow: planGlow(plan) }}
+      onClick={() => inputRef.current?.click()}
+    >
       {preview
-        ? <img src={preview} alt={name} className="prof-avatar-img" />
-        : <div className="prof-avatar-initials">{initials}</div>
+        ? <img src={preview} alt={name} className="prf2-avatar-img" />
+        : <div className="prf2-avatar-letters">{initials}</div>
       }
-      <div className={`prof-avatar-overlay ${uploading ? "loading" : ""}`}>
-        {uploading
-          ? <div className="prof-avatar-spinner" />
-          : <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="white" strokeWidth="1.8"/></svg>
-        }
+      <div className={`prf2-avatar-overlay ${busy ? "busy" : ""}`}>
+        {busy ? <Spin size={22} /> : (
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+              stroke="white" strokeWidth="1.8" strokeLinejoin="round" />
+            <circle cx="12" cy="13" r="4" stroke="white" strokeWidth="1.8" />
+          </svg>
+        )}
       </div>
-      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={pick} />
     </div>
   );
 }
 
-/* ── Change Password Modal ──────────────────── */
-function PasswordModal({ onClose, onSave }: { onClose: () => void; onSave: (curr: string, next: string) => Promise<void> }) {
+/* ─── Change Password Modal ─────────────── */
+function PwdModal({ onClose, onSave }: { onClose: () => void; onSave: (c: string, n: string) => Promise<void> }) {
   const [curr, setCurr] = useState(""); const [next, setNext] = useState(""); const [conf, setConf] = useState("");
-  const [loading, setLoading] = useState(false); const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
 
-  const handleSave = async () => {
+  const save = async () => {
     if (!curr || !next || !conf) { setErr("جميع الحقول مطلوبة"); return; }
-    if (next.length < 6) { setErr("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"); return; }
+    if (next.length < 6) { setErr("كلمة المرور الجديدة ٦ أحرف على الأقل"); return; }
     if (next !== conf) { setErr("كلمتا المرور غير متطابقتين"); return; }
-    setLoading(true); setErr("");
+    setBusy(true); setErr("");
     try { await onSave(curr, next); onClose(); }
     catch (e) { setErr((e as Error).message); }
-    finally { setLoading(false); }
+    finally { setBusy(false); }
   };
 
   return (
-    <div className="prof-modal-overlay" onClick={onClose}>
-      <div className="prof-modal" dir="rtl" onClick={e => e.stopPropagation()}>
-        <h3 className="prof-modal-title">تغيير كلمة المرور</h3>
-        {err && <div className="prof-modal-err">{err}</div>}
+    <div className="prf2-modal-bg" onClick={onClose}>
+      <div className="prf2-modal" dir="rtl" onClick={e => e.stopPropagation()}>
+        <div className="prf2-modal-handle" />
+        <h3 className="prf2-modal-title">🔑 تغيير كلمة المرور</h3>
+        {err && <div className="prf2-modal-err">{err}</div>}
         {[
           { label: "كلمة المرور الحالية", val: curr, set: setCurr },
           { label: "كلمة المرور الجديدة", val: next, set: setNext },
-          { label: "تأكيد كلمة المرور الجديدة", val: conf, set: setConf },
+          { label: "تأكيد كلمة المرور", val: conf, set: setConf },
         ].map(f => (
-          <div key={f.label} className="prof-modal-field">
-            <label className="prof-field-label">{f.label}</label>
-            <input type="password" className="prof-field-input" value={f.val} onChange={e => f.set(e.target.value)} placeholder="••••••" />
+          <div key={f.label} className="prf2-modal-field">
+            <label className="prf2-modal-label">{f.label}</label>
+            <input type="password" className="prf2-modal-input" value={f.val}
+              onChange={e => f.set(e.target.value)} placeholder="••••••" />
           </div>
         ))}
-        <div className="prof-modal-btns">
-          <button className="prof-modal-cancel" onClick={onClose}>إلغاء</button>
-          <button className="prof-modal-save" onClick={handleSave} disabled={loading}>
-            {loading ? <div className="prof-btn-spinner" /> : "حفظ"}
+        <div className="prf2-modal-row">
+          <button className="prf2-modal-cancel" onClick={onClose}>إلغاء</button>
+          <button className="prf2-modal-confirm" onClick={save} disabled={busy}>
+            {busy ? <Spin /> : "حفظ"}
           </button>
         </div>
       </div>
@@ -127,20 +169,23 @@ function PasswordModal({ onClose, onSave }: { onClose: () => void; onSave: (curr
   );
 }
 
-/* ── Delete Confirm Modal ───────────────────── */
+/* ─── Delete Confirm Modal ──────────────── */
 function DeleteModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => Promise<void> }) {
-  const [loading, setLoading] = useState(false);
-  const handle = async () => { setLoading(true); try { await onConfirm(); } finally { setLoading(false); } };
+  const [busy, setBusy] = useState(false);
+  const go = async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); } };
   return (
-    <div className="prof-modal-overlay" onClick={onClose}>
-      <div className="prof-modal" dir="rtl" onClick={e => e.stopPropagation()}>
-        <div className="prof-delete-icon">🗑️</div>
-        <h3 className="prof-modal-title">حذف الحساب نهائياً</h3>
-        <p className="prof-modal-desc">سيتم حذف جميع بياناتك، محادثاتك، وصورك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.</p>
-        <div className="prof-modal-btns">
-          <button className="prof-modal-cancel" onClick={onClose}>إلغاء</button>
-          <button className="prof-modal-delete" onClick={handle} disabled={loading}>
-            {loading ? <div className="prof-btn-spinner" /> : "حذف نهائياً"}
+    <div className="prf2-modal-bg" onClick={onClose}>
+      <div className="prf2-modal" dir="rtl" onClick={e => e.stopPropagation()}>
+        <div className="prf2-modal-handle" />
+        <div className="prf2-delete-emoji">⚠️</div>
+        <h3 className="prf2-modal-title">حذف الحساب نهائياً</h3>
+        <p className="prf2-modal-desc">
+          سيتم حذف جميع بياناتك ومحادثاتك بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
+        </p>
+        <div className="prf2-modal-row">
+          <button className="prf2-modal-cancel" onClick={onClose}>إلغاء</button>
+          <button className="prf2-modal-delete-btn" onClick={go} disabled={busy}>
+            {busy ? <Spin /> : "حذف نهائياً"}
           </button>
         </div>
       </div>
@@ -148,60 +193,100 @@ function DeleteModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: (
   );
 }
 
-/* ── Date helpers ───────────────────────────── */
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
-}
-function daysSince(iso: string) {
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+/* ─── Edit Profile Modal ────────────────── */
+function EditModal({
+  user, onClose, onSaved,
+}: { user: User; onClose: () => void; onSaved: (u: User) => void }) {
+  const [name, setName] = useState(user.name);
+  const [username, setUsername] = useState(user.username);
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const save = async () => {
+    if (!name.trim()) { setErr("الاسم مطلوب"); return; }
+    setBusy(true); setErr("");
+    try {
+      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim() });
+      onSaved({ ...user, ...updated });
+    } catch (e) { setErr((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="prf2-modal-bg" onClick={onClose}>
+      <div className="prf2-modal" dir="rtl" onClick={e => e.stopPropagation()}>
+        <div className="prf2-modal-handle" />
+        <h3 className="prf2-modal-title">✏️ تعديل الملف الشخصي</h3>
+        {err && <div className="prf2-modal-err">{err}</div>}
+        <div className="prf2-modal-field">
+          <label className="prf2-modal-label">الاسم الكامل</label>
+          <input className="prf2-modal-input" value={name} onChange={e => setName(e.target.value)} placeholder="اسمك الكامل" />
+        </div>
+        <div className="prf2-modal-field">
+          <label className="prf2-modal-label">اسم المستخدم</label>
+          <div style={{ position: "relative" }}>
+            <input className="prf2-modal-input" value={username} onChange={e => setUsername(e.target.value)}
+              placeholder="username" dir="ltr" style={{ textAlign: "left", paddingRight: 32 }} />
+            <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(30,136,255,0.6)", fontSize: "0.9rem" }}>@</span>
+          </div>
+        </div>
+        <div className="prf2-modal-field">
+          <label className="prf2-modal-label">نبذة شخصية</label>
+          <textarea className="prf2-modal-input" value={bio} onChange={e => setBio(e.target.value)}
+            placeholder="أخبرنا عن نفسك..." rows={3} style={{ resize: "none" }} />
+        </div>
+        <div className="prf2-modal-row">
+          <button className="prf2-modal-cancel" onClick={onClose}>إلغاء</button>
+          <button className="prf2-modal-confirm" onClick={save} disabled={busy}>
+            {busy ? <Spin /> : "حفظ"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-/* ══════════════════════════════════════════════
+/* ════════════════════════════════════════
    ProfileScreen
-══════════════════════════════════════════════ */
-export default function ProfileScreen({ user: initialUser, onUserUpdate, onLogout, onBack, onNavigate }: Props) {
-  const [user, setUser] = useState<User>(initialUser);
-  const [name, setName] = useState(initialUser.name);
-  const [username, setUsername] = useState(initialUser.username);
-  const [bio, setBio] = useState(initialUser.bio ?? "");
-  const [saving, setSaving] = useState(false);
+════════════════════════════════════════ */
+export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, onBack, onNavigate }: Props) {
+  const [user, setUser] = useState<User>(initUser);
+  const [subStatus, setSubStatus] = useState<SubscriptionStatus | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
-  const [showPwdModal, setShowPwdModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [modal, setModal] = useState<"pwd" | "delete" | "edit" | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    getProfile().then(u => { setUser(u); setName(u.name); setUsername(u.username); setBio(u.bio ?? ""); }).catch(() => {});
+    getProfile()
+      .then(u => { setUser(u); onUserUpdate(u); })
+      .catch(() => {});
+    getSubscriptionStatus()
+      .then(setSubStatus)
+      .catch(() => {});
   }, []);
 
-  const showToast = (msg: string, type: ToastType = "success") => setToast({ msg, type });
+  const toast$ = (msg: string, type: ToastType = "success") => setToast({ msg, type });
 
-  const handleSave = async () => {
-    if (!name.trim()) { showToast("الاسم لا يمكن أن يكون فارغاً", "error"); return; }
-    setSaving(true);
+  const handleAvatarUpload = async (b64: string) => {
     try {
-      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim() });
-      const newUser = { ...user, ...updated };
-      setUser(newUser); onUserUpdate(newUser);
-      showToast("تم حفظ التعديلات بنجاح ✓");
-    } catch (e) { showToast((e as Error).message, "error"); }
-    finally { setSaving(false); }
+      const u = await updateProfile({ avatarUrl: b64 });
+      const merged = { ...user, ...u };
+      setUser(merged); onUserUpdate(merged);
+      toast$("تم تحديث الصورة ✓");
+    } catch (e) { toast$((e as Error).message, "error"); }
   };
 
-  const handleAvatarUpload = async (base64: string) => {
-    try {
-      const updated = await updateProfile({ avatarUrl: base64 });
-      const newUser = { ...user, ...updated };
-      setUser(newUser); onUserUpdate(newUser);
-      showToast("تم تحديث الصورة بنجاح ✓");
-    } catch (e) { showToast((e as Error).message, "error"); }
+  const handleSaved = (u: User) => {
+    setUser(u); onUserUpdate(u);
+    toast$("تم الحفظ بنجاح ✓");
+    setModal(null);
   };
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    try { await authLogout(); onLogout(); }
-    catch { onLogout(); }
+    try { await authLogout(); } catch { /* ignore */ }
+    onLogout();
   };
 
   const handleDelete = async () => {
@@ -209,182 +294,250 @@ export default function ProfileScreen({ user: initialUser, onUserUpdate, onLogou
     onLogout();
   };
 
-  const hasChanges = name.trim() !== user.name || username.trim() !== user.username || bio.trim() !== (user.bio ?? "");
+  const plan = user.subscriptionType ?? "free";
+  const pct = subStatus ? Math.min(100, Math.round((subStatus.dailyUsed / subStatus.dailyLimit) * 100)) : 0;
+  const remaining = subStatus ? subStatus.dailyLimit - subStatus.dailyUsed : 0;
 
   return (
-    <div className="prof-root">
-      <div className="prof-bg" />
-      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
-      {showPwdModal && <PasswordModal onClose={() => setShowPwdModal(false)} onSave={changePassword} />}
-      {showDeleteModal && <DeleteModal onClose={() => setShowDeleteModal(false)} onConfirm={handleDelete} />}
+    <div className="prf2-root">
+      {/* background */}
+      <div className="prf2-bg" />
+      <div className="prf2-bg-radial" />
 
-      {/* Header */}
-      <header className="prof-header">
-        <button className="prof-icon-btn" onClick={onBack} aria-label="back">
+      {/* modals */}
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      {modal === "pwd" && (
+        <PwdModal onClose={() => setModal(null)} onSave={async (c, n) => {
+          await changePassword(c, n);
+          toast$("تم تغيير كلمة المرور ✓");
+        }} />
+      )}
+      {modal === "delete" && <DeleteModal onClose={() => setModal(null)} onConfirm={handleDelete} />}
+      {modal === "edit" && <EditModal user={user} onClose={() => setModal(null)} onSaved={handleSaved} />}
+
+      {/* ── Header ── */}
+      <header className="prf2-header">
+        <button className="prf2-back-btn" onClick={onBack}>
           <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
             <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="prof-header-title" dir="rtl">الملف الشخصي</h1>
-        <div style={{ width: 40 }} />
+        <span className="prf2-header-title" dir="rtl">الملف الشخصي</span>
+        <button className="prf2-edit-top-btn" onClick={() => setModal("edit")} title="تعديل">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
       </header>
 
-      <div className="prof-scroll">
-        {/* Avatar + Name */}
-        <div className="prof-identity" dir="rtl">
-          <AvatarUpload avatarUrl={user.avatarUrl} name={user.name} onUpload={handleAvatarUpload} />
-          <div className="prof-identity-info">
-            <div className="prof-user-name">{user.name}</div>
-            <div className="prof-user-handle">@{user.username}</div>
-            <div className="prof-user-badges">
-              <SubBadge type={user.subscriptionType} />
-              {user.bio && <span className="prof-user-bio-tag">لديه نبذة</span>}
+      <div className="prf2-scroll">
+
+        {/* ── Hero card ── */}
+        <div className="prf2-hero">
+          <div className="prf2-hero-cover" style={{ background: plan === "pro_max" ? "linear-gradient(135deg,#1a0533,#2d0b5a,#12063a)" : plan === "pro" ? "linear-gradient(135deg,#020d2a,#072258,#04091e)" : "linear-gradient(135deg,#0a0f22,#111827,#070b18)" }} />
+          <div className="prf2-hero-body">
+            <AvatarUpload avatarUrl={user.avatarUrl} name={user.name} plan={plan} onUpload={handleAvatarUpload} />
+            <div className="prf2-hero-info" dir="rtl">
+              <div className="prf2-hero-name">{user.name}</div>
+              <div className="prf2-hero-handle">@{user.username}</div>
+              {user.bio && <div className="prf2-hero-bio">{user.bio}</div>}
+              <div
+                className="prf2-plan-badge"
+                style={{ background: `${planColor(plan)}22`, border: `1px solid ${planColor(plan)}55`, color: planColor(plan), boxShadow: planGlow(plan) }}
+              >
+                {planEmoji(plan)} {planLabel(plan)}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="prof-stats-row" dir="rtl">
+        {/* ── Stats ── */}
+        <div className="prf2-stats" dir="rtl">
           {[
-            { label: "محادثة", value: user.conversationCount, icon: "💬" },
-            { label: "صورة", value: user.imageCount, icon: "🎨" },
-            { label: "يوم", value: daysSince(user.createdAt), icon: "📅" },
+            { icon: "💬", val: user.conversationCount, label: "محادثة" },
+            { icon: "🎨", val: user.imageCount, label: "صورة" },
+            { icon: "📅", val: daysSince(user.createdAt), label: "يوم معنا" },
           ].map(s => (
-            <div key={s.label} className="prof-stat-card">
-              <span className="prof-stat-icon">{s.icon}</span>
-              <span className="prof-stat-value">{s.value}</span>
-              <span className="prof-stat-label">{s.label}</span>
+            <div key={s.label} className="prf2-stat">
+              <span className="prf2-stat-icon">{s.icon}</span>
+              <span className="prf2-stat-val">{s.val}</span>
+              <span className="prf2-stat-lbl">{s.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Account info */}
-        <div className="prof-section" dir="rtl">
-          <h2 className="prof-section-title">معلومات الحساب</h2>
-          <div className="prof-info-card">
+        {/* ── Subscription card ── */}
+        <div className="prf2-section" dir="rtl">
+          <div className="prf2-section-title">الاشتراك</div>
+          <div className="prf2-sub-card" style={{ borderColor: `${planColor(plan)}40` }}>
+            <div className="prf2-sub-top">
+              <div>
+                <div className="prf2-sub-plan-name" style={{ color: planColor(plan) }}>
+                  {planEmoji(plan)} خطة {planLabel(plan)}
+                </div>
+                {plan !== "free" && user.subscriptionExpiresAt && (
+                  <div className="prf2-sub-exp">تنتهي في {fmtDate(user.subscriptionExpiresAt)}</div>
+                )}
+                {plan === "free" && (
+                  <div className="prf2-sub-exp">ترقّ للحصول على ميزات أكثر</div>
+                )}
+              </div>
+              <div className="prf2-sub-icon" style={{ background: `${planColor(plan)}18` }}>
+                <span style={{ fontSize: "1.5rem" }}>{planEmoji(plan)}</span>
+              </div>
+            </div>
+
+            {/* Daily usage bar */}
+            {subStatus && (
+              <div className="prf2-usage">
+                <div className="prf2-usage-row">
+                  <span className="prf2-usage-label">الاستخدام اليومي</span>
+                  <span className="prf2-usage-nums">
+                    <span style={{ color: "#fff" }}>{subStatus.dailyUsed}</span>
+                    <span style={{ color: "rgba(150,170,220,0.5)" }}>/{subStatus.dailyLimit}</span>
+                  </span>
+                </div>
+                <div className="prf2-usage-track">
+                  <div className="prf2-usage-fill" style={{
+                    width: `${pct}%`,
+                    background: pct > 90
+                      ? "linear-gradient(90deg,#ef4444,#dc2626)"
+                      : pct > 70
+                      ? "linear-gradient(90deg,#f59e0b,#d97706)"
+                      : `linear-gradient(90deg,${planColor(plan)},${planColor(plan)}99)`,
+                  }} />
+                </div>
+                <div className="prf2-usage-remain">
+                  {remaining > 0 ? `${remaining} رسالة متبقية اليوم` : "انتهى الحد اليومي"}
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="prf2-sub-actions">
+              <button className="prf2-sub-btn outline" onClick={() => onNavigate?.("activate")}>
+                🔑 تفعيل كود
+              </button>
+              <button className="prf2-sub-btn primary" style={{ background: `linear-gradient(135deg,${planColor(plan === "free" ? "pro" : plan)},${planColor(plan === "free" ? "pro_max" : plan)}99)` }}
+                onClick={() => onNavigate?.("plans")}>
+                {plan === "free" ? "⬆️ ترقية الخطة" : "📋 عرض الخطط"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Account info ── */}
+        <div className="prf2-section" dir="rtl">
+          <div className="prf2-section-title">معلومات الحساب</div>
+          <div className="prf2-info-card">
             {[
-              { label: "البريد الإلكتروني", value: user.email, icon: "📧" },
-              { label: "تاريخ إنشاء الحساب", value: fmtDate(user.createdAt), icon: "🗓️" },
-              { label: "آخر تسجيل دخول", value: fmtDate(user.lastLoginAt), icon: "🕐" },
-              { label: "نوع الاشتراك", value: user.subscriptionType === "free" ? "مجاني" : user.subscriptionType === "pro" ? "PRO" : "PRO MAX", icon: "⭐" },
-            ].map(item => (
-              <div key={item.label} className="prof-info-row">
-                <span className="prof-info-value">{item.value}</span>
-                <div className="prof-info-left">
-                  <span className="prof-info-icon">{item.icon}</span>
-                  <span className="prof-info-label">{item.label}</span>
+              { icon: "📧", label: "البريد الإلكتروني", val: user.email },
+              { icon: "🗓️", label: "تاريخ إنشاء الحساب", val: fmtDate(user.createdAt) },
+              { icon: "🕐", label: "آخر تسجيل دخول", val: fmtDate(user.lastLoginAt) },
+            ].map((row, i, arr) => (
+              <div key={row.label} className="prf2-info-row" style={i < arr.length - 1 ? { borderBottom: "1px solid rgba(255,255,255,0.05)" } : {}}>
+                <span className="prf2-info-val">{row.val}</span>
+                <div className="prf2-info-left">
+                  <span className="prf2-info-icon">{row.icon}</span>
+                  <span className="prf2-info-label">{row.label}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Edit profile */}
-        <div className="prof-section" dir="rtl">
-          <h2 className="prof-section-title">تعديل الملف الشخصي</h2>
-          <div className="prof-edit-card">
-            <div className="prof-field">
-              <label className="prof-field-label">الاسم الكامل</label>
-              <input className="prof-field-input" value={name} onChange={e => setName(e.target.value)} placeholder="اسمك الكامل" dir="rtl" />
-            </div>
-            <div className="prof-field">
-              <label className="prof-field-label">اسم المستخدم</label>
-              <div className="prof-field-prefix-wrap">
-                <input className="prof-field-input" value={username} onChange={e => setUsername(e.target.value)} placeholder="username" dir="ltr" style={{ textAlign: "left" }} />
-                <span className="prof-field-prefix">@</span>
+        {/* ── Settings ── */}
+        <div className="prf2-section" dir="rtl">
+          <div className="prf2-section-title">الإعدادات</div>
+          <div className="prf2-menu-card">
+            {[
+              {
+                icon: "✏️", label: "تعديل الملف الشخصي",
+                sub: `${user.name} · @${user.username}`,
+                onClick: () => setModal("edit"),
+              },
+              {
+                icon: "🔑", label: "تغيير كلمة المرور",
+                sub: "آخر تغيير: غير محدد",
+                onClick: () => setModal("pwd"),
+              },
+              {
+                icon: "🔔", label: "الإشعارات",
+                sub: "تخصيص إشعاراتك",
+                onClick: () => toast$("هذه الميزة قادمة قريباً", "info"),
+              },
+              {
+                icon: "🛡️", label: "الخصوصية والأمان",
+                sub: "إدارة بياناتك الشخصية",
+                onClick: () => toast$("هذه الميزة قادمة قريباً", "info"),
+              },
+            ].map((item, i, arr) => (
+              <div key={item.label}>
+                <button className="prf2-menu-row" onClick={item.onClick}>
+                  <svg className="prf2-menu-chevron" viewBox="0 0 24 24" fill="none" width="16" height="16">
+                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="prf2-menu-text">
+                    <span className="prf2-menu-label">{item.label}</span>
+                    <span className="prf2-menu-sub">{item.sub}</span>
+                  </div>
+                  <span className="prf2-menu-icon">{item.icon}</span>
+                </button>
+                {i < arr.length - 1 && <div className="prf2-menu-divider" />}
               </div>
-            </div>
-            <div className="prof-field">
-              <label className="prof-field-label">نبذة شخصية</label>
-              <textarea className="prof-field-textarea" value={bio} onChange={e => setBio(e.target.value)} placeholder="أخبر الجميع عن نفسك..." dir="rtl" rows={3} />
-            </div>
-            <button className={`prof-save-btn ${!hasChanges || saving ? "disabled" : ""}`} onClick={handleSave} disabled={!hasChanges || saving}>
-              {saving ? <><div className="prof-btn-spinner" /> جاري الحفظ...</> : "حفظ التعديلات"}
+            ))}
+          </div>
+        </div>
+
+        {/* ── Advanced / Admin ── */}
+        <div className="prf2-section" dir="rtl">
+          <div className="prf2-section-title">متقدم</div>
+          <div className="prf2-menu-card">
+            <button className="prf2-menu-row" onClick={() => onNavigate?.("admin")}>
+              <svg className="prf2-menu-chevron" viewBox="0 0 24 24" fill="none" width="16" height="16">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="prf2-menu-text">
+                <span className="prf2-menu-label">لوحة الإدارة</span>
+                <span className="prf2-menu-sub">إدارة الأكواد والمستخدمين</span>
+              </div>
+              <span className="prf2-menu-icon">⚙️</span>
             </button>
           </div>
         </div>
 
-        {/* Settings */}
-        <div className="prof-section" dir="rtl">
-          <h2 className="prof-section-title">الإعدادات</h2>
-          <div className="prof-settings-card">
-            <button className="prof-setting-row" onClick={() => setShowPwdModal(true)}>
-              <svg viewBox="0 0 24 24" fill="none" width="18" height="18" className="prof-setting-chevron" style={{ transform: "rotate(180deg)" }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <div className="prof-setting-text">
-                <span className="prof-setting-label">تغيير كلمة المرور</span>
-                <span className="prof-setting-sub">آخر تغيير: غير محدد</span>
-              </div>
-              <div className="prof-setting-icon-wrap">🔑</div>
-            </button>
-            <div className="prof-setting-divider" />
-            <button className="prof-setting-row" onClick={() => showToast("هذه الميزة قادمة قريباً", "info")}>
-              <svg viewBox="0 0 24 24" fill="none" width="18" height="18" className="prof-setting-chevron" style={{ transform: "rotate(180deg)" }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <div className="prof-setting-text">
-                <span className="prof-setting-label">الإشعارات</span>
-                <span className="prof-setting-sub">تخصيص الإشعارات</span>
-              </div>
-              <div className="prof-setting-icon-wrap">🔔</div>
-            </button>
-            <div className="prof-setting-divider" />
-            <button className="prof-setting-row" onClick={() => showToast("هذه الميزة قادمة قريباً", "info")}>
-              <svg viewBox="0 0 24 24" fill="none" width="18" height="18" className="prof-setting-chevron" style={{ transform: "rotate(180deg)" }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <div className="prof-setting-text">
-                <span className="prof-setting-label">الخصوصية والأمان</span>
-                <span className="prof-setting-sub">إدارة بياناتك الشخصية</span>
-              </div>
-              <div className="prof-setting-icon-wrap">🛡️</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Subscription management */}
-        <div className="prof-section" dir="rtl">
-          <h2 className="prof-section-title">الاشتراك</h2>
-          <div className="prof-sub-card">
-            <div className="prof-sub-info">
-              <SubBadge type={user.subscriptionType} />
-              {user.subscriptionType !== "free" && user.subscriptionExpiresAt && (
-                <span className="prof-sub-expires">تنتهي: {fmtDate(user.subscriptionExpiresAt)}</span>
-              )}
-            </div>
-            <div className="prof-sub-actions">
-              <button className="prof-sub-btn" onClick={() => onNavigate?.("activate")}>🔑 تفعيل كود</button>
-              <button className="prof-sub-btn primary" onClick={() => onNavigate?.("plans")}>
-                {user.subscriptionType === "free" ? "⬆️ ترقية الخطة" : "📋 الخطط"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Admin panel (hidden, accessed by tapping header title 5 times) */}
-        <div className="prof-section" dir="rtl">
-          <h2 className="prof-section-title">الإعدادات المتقدمة</h2>
-          <div className="prof-settings-card">
-            <button className="prof-setting-row" onClick={() => onNavigate?.("admin")}>
-              <svg viewBox="0 0 24 24" fill="none" width="18" height="18" className="prof-setting-chevron" style={{ transform: "rotate(180deg)" }}><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <div className="prof-setting-text">
-                <span className="prof-setting-label">لوحة الإدارة</span>
-                <span className="prof-setting-sub">إدارة الأكواد والمستخدمين</span>
-              </div>
-              <div className="prof-setting-icon-wrap">🛡️</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Logout + Delete */}
-        <div className="prof-danger-section">
-          <button className="prof-logout-btn" onClick={handleLogout} disabled={loggingOut} dir="rtl">
-            {loggingOut ? <div className="prof-btn-spinner" /> : (
-              <><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> تسجيل الخروج</>
+        {/* ── Danger zone ── */}
+        <div className="prf2-danger" dir="rtl">
+          <button className="prf2-logout-btn" onClick={handleLogout} disabled={loggingOut}>
+            {loggingOut ? <Spin /> : (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                تسجيل الخروج
+              </>
             )}
           </button>
-          <button className="prof-delete-account-btn" onClick={() => setShowDeleteModal(true)} dir="rtl">
-            <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          <button className="prf2-delete-btn" onClick={() => setModal("delete")}>
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+              <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
             حذف الحساب نهائياً
           </button>
         </div>
 
-        <div style={{ height: 40 }} />
+        {/* ── Footer ── */}
+        <div className="prf2-footer" dir="rtl">
+          <span className="prf2-footer-logo">ERKAN AI</span>
+          <span className="prf2-footer-ver">v1.0.0</span>
+        </div>
+
+        <div style={{ height: 50 }} />
       </div>
     </div>
   );
