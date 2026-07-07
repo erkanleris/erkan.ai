@@ -227,6 +227,7 @@ function EditModal({
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio ?? "");
+  const [gender, setGender] = useState(user.gender ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -234,7 +235,7 @@ function EditModal({
     if (!name.trim()) { setErr("الاسم مطلوب"); return; }
     setBusy(true); setErr("");
     try {
-      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim() });
+      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim(), gender });
       onSaved({ ...user, ...updated });
     } catch (e) { setErr((e as Error).message); }
     finally { setBusy(false); }
@@ -262,6 +263,25 @@ function EditModal({
           <label className="prf2-modal-label">نبذة شخصية</label>
           <textarea className="prf2-modal-input" value={bio} onChange={e => setBio(e.target.value)}
             placeholder="أخبرنا عن نفسك..." rows={3} style={{ resize: "none" }} />
+        </div>
+        <div className="prf2-modal-field">
+          <label className="prf2-modal-label">الجنس</label>
+          <div className="prf2-gender-row">
+            <button
+              type="button"
+              className={`prf2-gender-btn ${gender === "male" ? "prf2-gender-active-m" : ""}`}
+              onClick={() => setGender(gender === "male" ? "" : "male")}
+            >
+              👨 ذكر
+            </button>
+            <button
+              type="button"
+              className={`prf2-gender-btn ${gender === "female" ? "prf2-gender-active-f" : ""}`}
+              onClick={() => setGender(gender === "female" ? "" : "female")}
+            >
+              👩 أنثى
+            </button>
+          </div>
         </div>
         <div className="prf2-modal-row">
           <button className="prf2-modal-cancel" onClick={onClose}>إلغاء</button>

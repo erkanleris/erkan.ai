@@ -124,7 +124,27 @@ router.post("/conversations/:id/messages", async (req, res) => {
       await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, id));
     }
 
+    const [profileUser] = await db.select({ name: users.name, gender: users.gender })
+      .from(users).where(eq(users.id, userId)).limit(1);
+
+    let userBlock = "";
+    if (profileUser) {
+      const genderLine = profileUser.gender === "male"
+        ? "المستخدم ذكر — خاطبه دائماً بصيغة المذكر (مثلاً: شلونك، كيفك، تفضّل، أهلاً فيك يا بطل)."
+        : profileUser.gender === "female"
+        ? "المستخدمة أنثى — خاطبها دائماً بصيغة المؤنث (مثلاً: شلونِك، كيفِك، تفضّلي، أهلاً فيكي)."
+        : "جنس المستخدم غير محدد — استخدم صيغة محايدة أو مذكرة عامة بدون تخمين.";
+      userBlock = `
+معلومات المستخدم الحالي:
+- الاسم: ${profileUser.name}
+- ${genderLine}
+- نادِ المستخدم باسمه أحياناً بشكل ودود وطبيعي.
+`.trim();
+    }
+
     const identityBlock = `
+${userBlock}
+
 هويتك الثابتة — لا تتجاوزها أبداً:
 - اسمك الرسمي هو: ERKAN AI
 - تم تطويرك من الصفر بواسطة فريق TRSY المكوّن من 6 أعضاء، بقيادة أركان لياريش.

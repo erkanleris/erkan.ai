@@ -17,6 +17,7 @@ function userResponse(u: DbUser, extra?: { conversationCount?: number; imageCoun
     username: u.username,
     email: u.email,
     bio: u.bio,
+    gender: u.gender,
     avatarUrl: u.avatarUrl,
     subscriptionType: u.subscriptionType,
     subscriptionExpiresAt: u.subscriptionExpiresAt,
@@ -53,9 +54,13 @@ router.get("/me", async (req, res) => {
 // PUT /api/users/me
 router.put("/me", async (req, res) => {
   const userId = res.locals["userId"] as number;
-  const { name, username, bio, avatarUrl } = req.body as {
-    name?: string; username?: string; bio?: string; avatarUrl?: string;
+  const { name, username, bio, avatarUrl, gender } = req.body as {
+    name?: string; username?: string; bio?: string; avatarUrl?: string; gender?: string;
   };
+
+  if (gender !== undefined && gender !== null && gender !== "" && gender !== "male" && gender !== "female") {
+    res.status(400).json({ error: "قيمة الجنس غير صالحة" }); return;
+  }
 
   if (name !== undefined && !name.trim()) {
     res.status(400).json({ error: "الاسم لا يمكن أن يكون فارغاً" }); return;
@@ -67,6 +72,7 @@ router.put("/me", async (req, res) => {
     if (username !== undefined) updates["username"] = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
     if (bio !== undefined) updates["bio"] = bio.trim() || null;
     if (avatarUrl !== undefined) updates["avatarUrl"] = avatarUrl || null;
+    if (gender !== undefined) updates["gender"] = gender || null;
 
     const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
     if (!updated) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }
