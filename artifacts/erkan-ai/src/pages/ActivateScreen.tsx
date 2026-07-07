@@ -11,44 +11,22 @@ const WHATSAPP_NUM = "905382262557";
 const WHATSAPP_MSG = encodeURIComponent("مرحباً، أرغب في شراء كود تفعيل برو ماكس لتطبيق ERKAN AI.");
 
 export default function ActivateScreen({ user, onBack, onActivated }: Props) {
-  const [code, setCode] = useState(["", "", "", ""]);
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const inputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setTimeout(() => inputRefs[0].current?.focus(), 300); }, []);
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 300); }, []);
 
-  const handleInput = (idx: number, val: string) => {
-    const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
-    const newCode = [...code];
-    newCode[idx] = clean;
-    setCode(newCode);
+  const handleInput = (val: string) => {
+    const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
+    setCode(clean);
     setError("");
-    if (clean.length === 4 && idx < 3) inputRefs[idx + 1]?.current?.focus();
-  };
-
-  const handleKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !code[idx] && idx > 0) inputRefs[idx - 1]?.current?.focus();
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
-    const parts = [pasted.slice(0, 4), pasted.slice(4, 8), pasted.slice(8, 12), pasted.slice(12, 16)];
-    setCode(parts);
-    setError("");
-    const lastFilled = parts.findLastIndex((p) => p.length > 0);
-    inputRefs[Math.min(lastFilled + 1, 3)]?.current?.focus();
   };
 
   const handleActivate = async () => {
-    const fullCode = code.join("");
+    const fullCode = code;
     if (fullCode.length < 16) {
       setError("يجب أن يتكون كود التفعيل من 16 حرفاً ورقماً");
       return;
@@ -79,8 +57,7 @@ export default function ActivateScreen({ user, onBack, onActivated }: Props) {
     window.open(`https://wa.me/${WHATSAPP_NUM}?text=${WHATSAPP_MSG}`, "_blank");
   };
 
-  const fullCode = code.join("");
-  const isReady = fullCode.length === 16;
+  const isReady = code.length === 16;
 
   /* ── Success screen ── */
   if (success) {
@@ -131,26 +108,22 @@ export default function ActivateScreen({ user, onBack, onActivated }: Props) {
         </div>
 
         {/* Code input */}
-        <div className="act2-code-section" onPaste={handlePaste}>
+        <div className="act2-code-section">
           <div className="act2-code-label" dir="rtl">كود التفعيل</div>
-          <div className="act2-code-boxes">
-            {code.map((part, i) => (
-              <input
-                key={i}
-                ref={inputRefs[i]}
-                className={`act2-code-box ${part.length === 4 ? "filled" : ""}`}
-                value={part}
-                onChange={(e) => handleInput(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                maxLength={4}
-                placeholder="XXXX"
-                autoCapitalize="characters"
-                spellCheck={false}
-                dir="ltr"
-              />
-            ))}
+          <input
+            ref={inputRef}
+            className={`act2-code-single ${code.length === 16 ? "filled" : ""}`}
+            value={code}
+            onChange={(e) => handleInput(e.target.value)}
+            maxLength={16}
+            placeholder="أدخل الكود هنا"
+            autoCapitalize="characters"
+            spellCheck={false}
+            dir="ltr"
+          />
+          <div className="act2-code-hint" dir="rtl">
+            {code.length > 0 ? `${code.length} / 16 حرف` : "مثال: ABCDEF12GH34IJ56"}
           </div>
-          <div className="act2-code-hint" dir="rtl">مثال: ABCD · EF12 · GH34 · IJ56</div>
         </div>
 
         {/* Error */}
