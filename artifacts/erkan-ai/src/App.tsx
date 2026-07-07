@@ -58,6 +58,12 @@ export default function App() {
   const DURATION = 3800;
 
   useEffect(() => {
+    const onForceLogout = () => { setUser(null); setScreen({ name: "login" }); };
+    window.addEventListener("erkan:logout", onForceLogout);
+    return () => window.removeEventListener("erkan:logout", onForceLogout);
+  }, []);
+
+  useEffect(() => {
     if (screen.name !== "loading") return;
     const animate = (ts: number) => {
       if (!startRef.current) startRef.current = ts;
