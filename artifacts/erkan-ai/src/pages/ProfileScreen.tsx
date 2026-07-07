@@ -526,23 +526,6 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
           </div>
         </div>
 
-        {/* ── Advanced / Admin ── */}
-        <div className="prf2-section" dir="rtl">
-          <div className="prf2-section-title">متقدم</div>
-          <div className="prf2-menu-card">
-            <button className="prf2-menu-row" onClick={() => onNavigate?.("admin")}>
-              <svg className="prf2-menu-chevron" viewBox="0 0 24 24" fill="none" width="16" height="16">
-                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <div className="prf2-menu-text">
-                <span className="prf2-menu-label">لوحة الإدارة</span>
-                <span className="prf2-menu-sub">إدارة الأكواد والمستخدمين</span>
-              </div>
-              <span className="prf2-menu-icon">⚙️</span>
-            </button>
-          </div>
-        </div>
-
         {/* ── Danger zone ── */}
         <div className="prf2-danger" dir="rtl">
           <button className="prf2-logout-btn" onClick={handleLogout} disabled={loggingOut}>
