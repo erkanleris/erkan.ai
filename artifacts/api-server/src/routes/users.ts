@@ -8,10 +8,10 @@ import { requireAuth } from "../middleware/requireAuth";
 const router = Router();
 router.use(requireAuth);
 
-// GET /api/users/me — full profile with live stats
+// GET /api/users/me
 router.get("/me", async (req, res) => {
+  const userId = res.locals["userId"] as number;
   try {
-    const userId = req.session.userId!;
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }
 
@@ -23,22 +23,12 @@ router.get("/me", async (req, res) => {
     const convCount = convRow?.total ?? 0;
     const imgCount = imgRow?.total ?? 0;
 
-    await db.update(users)
-      .set({ conversationCount: convCount, imageCount: imgCount })
-      .where(eq(users.id, userId));
-
     res.json({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      bio: user.bio,
-      avatarUrl: user.avatarUrl,
+      id: user.id, name: user.name, username: user.username,
+      email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
       subscriptionType: user.subscriptionType,
-      conversationCount: convCount,
-      imageCount: imgCount,
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
+      conversationCount: convCount, imageCount: imgCount,
+      createdAt: user.createdAt, lastLoginAt: user.lastLoginAt,
     });
   } catch (err) {
     req.log.error({ err }, "Get profile error");
@@ -46,28 +36,23 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// PUT /api/users/me — update name, username, bio, avatarUrl
+// PUT /api/users/me
 router.put("/me", async (req, res) => {
-  const userId = req.session.userId!;
+  const userId = res.locals["userId"] as number;
   const { name, username, bio, avatarUrl } = req.body as {
     name?: string; username?: string; bio?: string; avatarUrl?: string;
   };
 
   if (name !== undefined && !name.trim()) {
-    res.status(400).json({ error: "الاسم لا يمكن أن يكون فارغاً" });
-    return;
-  }
-  if (username !== undefined && !username.trim()) {
-    res.status(400).json({ error: "اسم المستخدم لا يمكن أن يكون فارغاً" });
-    return;
+    res.status(400).json({ error: "الاسم لا يمكن أن يكون فارغاً" }); return;
   }
 
   try {
-    const updates: Partial<typeof users.$inferInsert> = {};
-    if (name !== undefined) updates.name = name.trim();
-    if (username !== undefined) updates.username = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
-    if (bio !== undefined) updates.bio = bio.trim() || null;
-    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl || null;
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates["name"] = name.trim();
+    if (username !== undefined) updates["username"] = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (bio !== undefined) updates["bio"] = bio.trim() || null;
+    if (avatarUrl !== undefined) updates["avatarUrl"] = avatarUrl || null;
 
     const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
     if (!updated) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }
@@ -78,28 +63,24 @@ router.put("/me", async (req, res) => {
       subscriptionType: updated.subscriptionType,
     });
   } catch (err: unknown) {
-    const msg = String(err);
-    if (msg.includes("unique")) {
-      res.status(409).json({ error: "اسم المستخدم مستخدم مسبقاً" });
-      return;
+    if (String(err).includes("unique")) {
+      res.status(409).json({ error: "اسم المستخدم مستخدم مسبقاً" }); return;
     }
     req.log.error({ err }, "Update profile error");
     res.status(500).json({ error: "حدث خطأ أثناء الحفظ" });
   }
 });
 
-// PUT /api/users/me/password — change password
+// PUT /api/users/me/password
 router.put("/me/password", async (req, res) => {
-  const userId = req.session.userId!;
+  const userId = res.locals["userId"] as number;
   const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
 
   if (!currentPassword || !newPassword) {
-    res.status(400).json({ error: "كلمة المرور الحالية والجديدة مطلوبتان" });
-    return;
+    res.status(400).json({ error: "كلمة المرور الحالية والجديدة مطلوبتان" }); return;
   }
   if (newPassword.length < 6) {
-    res.status(400).json({ error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" });
-    return;
+    res.status(400).json({ error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" }); return;
   }
 
   try {
@@ -107,26 +88,22 @@ router.put("/me/password", async (req, res) => {
     if (!user) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }
 
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!valid) {
-      res.status(400).json({ error: "كلمة المرور الحالية غير صحيحة" });
-      return;
-    }
+    if (!valid) { res.status(400).json({ error: "كلمة المرور الحالية غير صحيحة" }); return; }
 
     const newHash = await bcrypt.hash(newPassword, 12);
     await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, userId));
     res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Change password error");
-    res.status(500).json({ error: "حدث خطأ أثناء تغيير كلمة المرور" });
+    res.status(500).json({ error: "حدث خطأ" });
   }
 });
 
-// DELETE /api/users/me — delete account + all data (cascade handles conversations, images)
+// DELETE /api/users/me
 router.delete("/me", async (req, res) => {
-  const userId = req.session.userId!;
+  const userId = res.locals["userId"] as number;
   try {
     await db.delete(users).where(eq(users.id, userId));
-    req.session.destroy(() => {});
     res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Delete account error");
@@ -134,13 +111,12 @@ router.delete("/me", async (req, res) => {
   }
 });
 
-// GET /api/users/me/images — list generated images
+// GET /api/users/me/images
 router.get("/me/images", async (req, res) => {
+  const userId = res.locals["userId"] as number;
   try {
-    const imgs = await db
-      .select()
-      .from(generatedImages)
-      .where(eq(generatedImages.userId, req.session.userId!))
+    const imgs = await db.select().from(generatedImages)
+      .where(eq(generatedImages.userId, userId))
       .orderBy(generatedImages.createdAt);
     res.json(imgs);
   } catch (err) {
@@ -152,9 +128,7 @@ router.get("/me/images", async (req, res) => {
 // DELETE /api/users/me/images/:id
 router.delete("/me/images/:id", async (req, res) => {
   try {
-    const imgId = Number(req.params["id"]);
-    await db.delete(generatedImages)
-      .where(eq(generatedImages.id, imgId));
+    await db.delete(generatedImages).where(eq(generatedImages.id, Number(req.params["id"])));
     res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Delete image error");

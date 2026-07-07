@@ -1,5 +1,29 @@
-const FETCH_OPTS: RequestInit = { credentials: "include" };
+/* ── Token storage ─────────────────────────── */
+const TOKEN_KEY = "erkan_auth_token";
 
+export function getStoredToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+export function setStoredToken(token: string): void {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
+}
+export function clearStoredToken(): void {
+  try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+}
+
+function authHeaders(): HeadersInit {
+  const token = getStoredToken();
+  return token
+    ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+    : { "Content-Type": "application/json" };
+}
+
+function getHeaders(): HeadersInit {
+  const token = getStoredToken();
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
+/* ── Types ─────────────────────────────────── */
 export type User = {
   id: number;
   name: string;
@@ -31,55 +55,63 @@ export type Message = {
   createdAt: string;
 };
 
-/* ── Auth ──────────────────────────────────────────── */
+/* ── Auth ──────────────────────────────────── */
 
 export async function authMe(): Promise<User | null> {
-  const r = await fetch("/api/auth/me", FETCH_OPTS);
-  if (r.status === 401) return null;
+  const token = getStoredToken();
+  if (!token) return null;
+  const r = await fetch("/api/auth/me", { headers: getHeaders() });
+  if (r.status === 401) { clearStoredToken(); return null; }
   if (!r.ok) return null;
   return r.json();
 }
 
 export async function authRegister(name: string, email: string, password: string): Promise<User> {
-  const username = email.split("@")[0]!.toLowerCase().replace(/[^a-z0-9_]/g, "");
   const r = await fetch("/api/auth/register", {
-    ...FETCH_OPTS, method: "POST",
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, username, email, password }),
+    body: JSON.stringify({ name, email, password }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error ?? "Registration failed");
-  return data;
+  setStoredToken(data.token);
+  return data.user;
 }
 
 export async function authLogin(email: string, password: string): Promise<User> {
   const r = await fetch("/api/auth/login", {
-    ...FETCH_OPTS, method: "POST",
+    method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error ?? "Login failed");
-  return data;
+  setStoredToken(data.token);
+  return data.user;
 }
 
 export async function authLogout(): Promise<void> {
-  await fetch("/api/auth/logout", { ...FETCH_OPTS, method: "POST" });
+  const token = getStoredToken();
+  if (token) {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` },
+    }).catch(() => {});
+  }
+  clearStoredToken();
 }
 
-/* ── Users / Profile ───────────────────────────────── */
+/* ── Users / Profile ───────────────────────── */
 
 export async function getProfile(): Promise<User> {
-  const r = await fetch("/api/users/me", FETCH_OPTS);
+  const r = await fetch("/api/users/me", { headers: getHeaders() });
   if (!r.ok) throw new Error("Failed to load profile");
   return r.json();
 }
 
 export async function updateProfile(data: Partial<Pick<User, "name" | "username" | "bio" | "avatarUrl">>): Promise<User> {
   const r = await fetch("/api/users/me", {
-    ...FETCH_OPTS, method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    method: "PUT", headers: authHeaders(), body: JSON.stringify(data),
   });
   const result = await r.json();
   if (!r.ok) throw new Error(result.error ?? "Update failed");
@@ -88,8 +120,7 @@ export async function updateProfile(data: Partial<Pick<User, "name" | "username"
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   const r = await fetch("/api/users/me/password", {
-    ...FETCH_OPTS, method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: "PUT", headers: authHeaders(),
     body: JSON.stringify({ currentPassword, newPassword }),
   });
   const data = await r.json();
@@ -97,22 +128,22 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 export async function deleteAccount(): Promise<void> {
-  const r = await fetch("/api/users/me", { ...FETCH_OPTS, method: "DELETE" });
+  const r = await fetch("/api/users/me", { method: "DELETE", headers: authHeaders() });
+  clearStoredToken();
   if (!r.ok) throw new Error("Delete account failed");
 }
 
-/* ── Conversations ─────────────────────────────────── */
+/* ── Conversations ─────────────────────────── */
 
 export async function getConversations(): Promise<Conversation[]> {
-  const r = await fetch("/api/ai/conversations", FETCH_OPTS);
+  const r = await fetch("/api/ai/conversations", { headers: getHeaders() });
   if (!r.ok) throw new Error("Failed to load conversations");
   return r.json();
 }
 
 export async function createConversation(title?: string, mode?: string): Promise<Conversation> {
   const r = await fetch("/api/ai/conversations", {
-    ...FETCH_OPTS, method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: authHeaders(),
     body: JSON.stringify({ title, mode }),
   });
   if (!r.ok) throw new Error("Failed to create conversation");
@@ -120,11 +151,11 @@ export async function createConversation(title?: string, mode?: string): Promise
 }
 
 export async function deleteConversation(id: number): Promise<void> {
-  await fetch(`/api/ai/conversations/${id}`, { ...FETCH_OPTS, method: "DELETE" });
+  await fetch(`/api/ai/conversations/${id}`, { method: "DELETE", headers: getHeaders() });
 }
 
 export async function getMessages(conversationId: number): Promise<Message[]> {
-  const r = await fetch(`/api/ai/conversations/${conversationId}/messages`, FETCH_OPTS);
+  const r = await fetch(`/api/ai/conversations/${conversationId}/messages`, { headers: getHeaders() });
   if (!r.ok) throw new Error("Failed to load messages");
   return r.json();
 }
@@ -135,8 +166,7 @@ export function streamMessage(
   onError: (err: string) => void, signal?: AbortSignal
 ): void {
   fetch(`/api/ai/conversations/${conversationId}/messages`, {
-    ...FETCH_OPTS, method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: authHeaders(),
     body: JSON.stringify({ content, mode }), signal,
   }).then(async (res) => {
     if (!res.ok || !res.body) { onError("Failed to connect to AI"); return; }
@@ -166,9 +196,7 @@ export function streamMessage(
 
 export async function generateImage(prompt: string): Promise<string> {
   const r = await fetch("/api/ai/generate-image", {
-    ...FETCH_OPTS, method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    method: "POST", headers: authHeaders(), body: JSON.stringify({ prompt }),
   });
   if (!r.ok) throw new Error("Image generation failed");
   const data = await r.json();

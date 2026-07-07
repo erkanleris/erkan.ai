@@ -3,6 +3,8 @@ import { db } from "@workspace/db";
 import { users } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { createToken, getUserId, deleteToken } from "../lib/tokenStore";
+import { getTokenFromRequest } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -16,14 +18,17 @@ router.post("/register", async (req, res) => {
     res.status(400).json({ error: "الاسم والبريد الإلكتروني وكلمة المرور مطلوبة" });
     return;
   }
+  if (password.length < 6) {
+    res.status(400).json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" });
+    return;
+  }
 
-  const cleanUsername = (username?.trim() || email.split("@")[0]!).toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const cleanUsername = (username?.trim() || email.split("@")[0]!)
+    .toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30) || "user";
 
   try {
-    const existing = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(or(eq(users.email, email.toLowerCase()), eq(users.username, cleanUsername)))
+    const existing = await db.select({ id: users.id }).from(users)
+      .where(or(eq(users.email, email.toLowerCase().trim()), eq(users.username, cleanUsername)))
       .limit(1);
 
     if (existing.length > 0) {
@@ -32,31 +37,25 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const [user] = await db.insert(users).values({
+      name: name.trim(),
+      username: cleanUsername,
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      lastLoginAt: new Date(),
+    }).returning();
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        name: name.trim(),
-        username: cleanUsername,
-        email: email.toLowerCase().trim(),
-        passwordHash,
-        lastLoginAt: new Date(),
-      })
-      .returning();
-
-    req.session.userId = user!.id;
+    const token = createToken(user!.id);
     res.status(201).json({
-      id: user!.id,
-      name: user!.name,
-      username: user!.username,
-      email: user!.email,
-      bio: user!.bio,
-      avatarUrl: user!.avatarUrl,
-      subscriptionType: user!.subscriptionType,
-      conversationCount: user!.conversationCount,
-      imageCount: user!.imageCount,
-      createdAt: user!.createdAt,
-      lastLoginAt: user!.lastLoginAt,
+      token,
+      user: {
+        id: user!.id, name: user!.name, username: user!.username,
+        email: user!.email, bio: user!.bio, avatarUrl: user!.avatarUrl,
+        subscriptionType: user!.subscriptionType,
+        conversationCount: user!.conversationCount,
+        imageCount: user!.imageCount,
+        createdAt: user!.createdAt, lastLoginAt: user!.lastLoginAt,
+      },
     });
   } catch (err) {
     req.log.error({ err }, "Register error");
@@ -74,11 +73,8 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase().trim()))
-      .limit(1);
+    const [user] = await db.select().from(users)
+      .where(eq(users.email, email.toLowerCase().trim())).limit(1);
 
     if (!user) {
       res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
@@ -92,20 +88,18 @@ router.post("/login", async (req, res) => {
     }
 
     await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
-    req.session.userId = user.id;
+    const token = createToken(user.id);
 
     res.json({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      bio: user.bio,
-      avatarUrl: user.avatarUrl,
-      subscriptionType: user.subscriptionType,
-      conversationCount: user.conversationCount,
-      imageCount: user.imageCount,
-      createdAt: user.createdAt,
-      lastLoginAt: new Date().toISOString(),
+      token,
+      user: {
+        id: user.id, name: user.name, username: user.username,
+        email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
+        subscriptionType: user.subscriptionType,
+        conversationCount: user.conversationCount,
+        imageCount: user.imageCount,
+        createdAt: user.createdAt, lastLoginAt: new Date().toISOString(),
+      },
     });
   } catch (err) {
     req.log.error({ err }, "Login error");
@@ -115,44 +109,30 @@ router.post("/login", async (req, res) => {
 
 // POST /api/auth/logout
 router.post("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) req.log.error({ err }, "Session destroy error");
-    res.clearCookie("connect.sid");
-    res.json({ success: true });
-  });
+  const token = getTokenFromRequest(req);
+  if (token) deleteToken(token);
+  res.json({ success: true });
 });
 
 // GET /api/auth/me
 router.get("/me", async (req, res) => {
-  if (!req.session.userId) {
-    res.status(401).json({ error: "غير مسجل الدخول" });
-    return;
-  }
-  try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, req.session.userId))
-      .limit(1);
+  const token = getTokenFromRequest(req);
+  if (!token) { res.status(401).json({ error: "غير مسجل الدخول" }); return; }
 
-    if (!user) {
-      req.session.destroy(() => {});
-      res.status(401).json({ error: "المستخدم غير موجود" });
-      return;
-    }
+  const userId = getUserId(token);
+  if (!userId) { res.status(401).json({ error: "جلسة منتهية" }); return; }
+
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) { res.status(401).json({ error: "المستخدم غير موجود" }); return; }
 
     res.json({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      bio: user.bio,
-      avatarUrl: user.avatarUrl,
+      id: user.id, name: user.name, username: user.username,
+      email: user.email, bio: user.bio, avatarUrl: user.avatarUrl,
       subscriptionType: user.subscriptionType,
       conversationCount: user.conversationCount,
       imageCount: user.imageCount,
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt, lastLoginAt: user.lastLoginAt,
     });
   } catch (err) {
     req.log.error({ err }, "Auth me error");
