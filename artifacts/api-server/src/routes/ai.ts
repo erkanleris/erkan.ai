@@ -213,9 +213,22 @@ Dil kuralları:
     };
 
     const userCountry = profileUser?.country ?? "";
-    const dialectBase = dialectBases[userCountry] ?? `${dialectBases["syria"]!}
 
-ملاحظة: المستخدم لم يحدد دولته بعد. في أول رد لك، اطلب منه بلطف اختيار دولته من الملف الشخصي (سوريا، مصر، السعودية، الأردن، تركيا) ليتم التحدث معه بلهجته المحلية، ثم أجب على سؤاله بشكل طبيعي.`;
+    // Uncapped existence check: has any assistant message ever been saved for this conversation?
+    const [assistantExists] = await db.select({ id: messages.id }).from(messages)
+      .where(and(eq(messages.conversationId, id), eq(messages.role, "assistant"))).limit(1);
+    const hasAssistantReply = assistantExists !== undefined;
+
+    // Bounded history for model context (last 20 messages)
+    const priorMessages = await db.select().from(messages)
+      .where(eq(messages.conversationId, id)).orderBy(messages.createdAt).limit(20);
+
+    // Inject country-selection reminder only when country is unset AND this is the first reply
+    const dialectBase = dialectBases[userCountry] ?? (
+      !hasAssistantReply
+        ? `${dialectBases["syria"]!}\n\nملاحظة: المستخدم لم يحدد دولته بعد. في أول رد لك فقط، اطلب منه بلطف اختيار دولته من الملف الشخصي (سوريا، مصر، السعودية، الأردن، تركيا) ليتم التحدث معه بلهجته المحلية، ثم أجب على سؤاله بشكل طبيعي.`
+        : dialectBases["syria"]!
+    );
     const modeSuffixes: Record<string, Record<string, string>> = {
       ar: {
         chat: "أجب على كل أسئلة المستخدم بشكل مفيد وذكي واحترافي.",
@@ -243,8 +256,6 @@ Dil kuralları:
     };
 
     const systemPrompt = systemPrompts[mode] ?? systemPrompts["chat"]!;
-    const priorMessages = await db.select().from(messages)
-      .where(eq(messages.conversationId, id)).orderBy(messages.createdAt).limit(20);
     const chatMessages = priorMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     res.setHeader("Content-Type", "text/event-stream");
