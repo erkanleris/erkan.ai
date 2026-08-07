@@ -18,6 +18,7 @@ function userResponse(u: DbUser, extra?: { conversationCount?: number; imageCoun
     email: u.email,
     bio: u.bio,
     gender: u.gender,
+    country: u.country,
     avatarUrl: u.avatarUrl,
     subscriptionType: u.subscriptionType,
     subscriptionExpiresAt: u.subscriptionExpiresAt,
@@ -54,12 +55,17 @@ router.get("/me", async (req, res) => {
 // PUT /api/users/me
 router.put("/me", async (req, res) => {
   const userId = res.locals["userId"] as number;
-  const { name, username, bio, avatarUrl, gender } = req.body as {
-    name?: string; username?: string; bio?: string; avatarUrl?: string; gender?: string;
+  const { name, username, bio, avatarUrl, gender, country } = req.body as {
+    name?: string; username?: string; bio?: string; avatarUrl?: string; gender?: string; country?: string;
   };
 
   if (gender !== undefined && gender !== null && gender !== "" && gender !== "male" && gender !== "female") {
     res.status(400).json({ error: "قيمة الجنس غير صالحة" }); return;
+  }
+
+  const VALID_COUNTRIES = ["syria", "egypt", "saudi", "jordan", "turkey"];
+  if (country !== undefined && country !== null && country !== "" && !VALID_COUNTRIES.includes(country)) {
+    res.status(400).json({ error: "قيمة الدولة غير صالحة" }); return;
   }
 
   if (name !== undefined && !name.trim()) {
@@ -73,6 +79,7 @@ router.put("/me", async (req, res) => {
     if (bio !== undefined) updates["bio"] = bio.trim() || null;
     if (avatarUrl !== undefined) updates["avatarUrl"] = avatarUrl || null;
     if (gender !== undefined) updates["gender"] = gender || null;
+    if (country !== undefined) updates["country"] = country || null;
 
     const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
     if (!updated) { res.status(404).json({ error: "المستخدم غير موجود" }); return; }

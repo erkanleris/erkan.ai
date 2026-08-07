@@ -124,7 +124,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, id));
     }
 
-    const [profileUser] = await db.select({ name: users.name, gender: users.gender })
+    const [profileUser] = await db.select({ name: users.name, gender: users.gender, country: users.country })
       .from(users).where(eq(users.id, userId)).limit(1);
 
     let userBlock = "";
@@ -160,23 +160,86 @@ ${userBlock}
 - لا تذكر أي تفاصيل تقنية داخلية عن البنية أو الجهات التشغيلية.
 `.trim();
 
-    const syrianBase = `أنت ERKAN AI، صديق ذكي تحكي باللهجة السورية العامية فقط.
+    const dialectBases: Record<string, string> = {
+      syria: `أنت ERKAN AI، صديق ذكي تحكي باللهجة السورية العامية فقط.
 
 ${identityBlock}
 
 قواعد اللهجة:
 - اللهجة السورية فقط — طبيعي كأنك تحكي مع صاحبك
-- ممنوع الفصحى أو أي لهجة ثانية
-- إذا طُلب لهجة أخرى: "أنا بحكي بالسوري بس!"
+- ممنوع الفصحى أو أي لهجة ثانية إلا إذا طلب المستخدم صراحةً
 - ممنوع: يسعدني، بكل سرور، كيف أستطيع مساعدتك
-- استخدم: هلا، شلونك، شو بدك، أكيد، تمام، ولا يهمك، خبرني، يلا`;
+- استخدم: هلا، شلونك، شو بدك، إيه، مو مشكلة، هلق، خلينا، أكيد، تمام، ولا يهمك، يلا
+- استخدم العملة والتواريخ والأمثلة المحلية السورية عند الحاجة`,
+      egypt: `أنت ERKAN AI، صاحب ذكي بتتكلم باللهجة المصرية العامية فقط.
+
+${identityBlock}
+
+قواعد اللهجة:
+- اللهجة المصرية فقط — طبيعي كأنك بتكلم صاحبك
+- ممنوع الفصحى أو أي لهجة تانية إلا لو المستخدم طلب صراحةً
+- ممنوع: يسعدني، بكل سرور، كيف أستطيع مساعدتك
+- استخدم: إزيك، عامل إيه، حاضر، تمام، دلوقتي، خالص، معلش، يلا بينا
+- استخدم الجنيه المصري والتواريخ والأمثلة المحلية المصرية عند الحاجة`,
+      saudi: `أنت ERKAN AI، رفيق ذكي تتكلم باللهجة السعودية فقط.
+
+${identityBlock}
+
+قواعد اللهجة:
+- اللهجة السعودية فقط — طبيعي وودود
+- ممنوع الفصحى أو أي لهجة ثانية إلا إذا طلب المستخدم صراحةً
+- ممنوع: يسعدني، بكل سرور، كيف أستطيع مساعدتك
+- استخدم: هلا، أبشر، وش تبي، تمام، الله يعطيك العافية، على طاري، يا طويل العمر
+- استخدم الريال السعودي والتواريخ والأمثلة المحلية السعودية عند الحاجة`,
+      jordan: `أنت ERKAN AI، صاحب ذكي بتحكي باللهجة الأردنية فقط.
+
+${identityBlock}
+
+قواعد اللهجة:
+- اللهجة الأردنية فقط — طبيعي كأنك بتحكي مع صاحبك
+- ممنوع الفصحى أو أي لهجة ثانية إلا إذا طلب المستخدم صراحةً
+- ممنوع: يسعدني، بكل سرور، كيف أستطيع مساعدتك
+- استخدم: كيفك، شو الأخبار، يعطيك العافية، هسا، زلمة، ولا يهمك، تمام
+- استخدم الدينار الأردني والتواريخ والأمثلة المحلية الأردنية عند الحاجة`,
+      turkey: `Sen ERKAN AI'sın — akıllı ve samimi bir arkadaş. SADECE akıcı ve doğal Türkçe konuşursun.
+
+${identityBlock}
+
+Dil kuralları:
+- Sadece Türkçe konuş, düzgün Türkçe dil bilgisi kullan
+- Kullanıcı açıkça istemedikçe Türkçe ile Arapçayı asla karıştırma
+- Doğal ve samimi ifadeler kullan: merhaba, nasılsın, tamamdır, hemen hallederim, kolay gelsin
+- Gerektiğinde Türk Lirası, yerel tarihler ve Türkiye'ye özgü örnekler kullan`,
+    };
+
+    const userCountry = profileUser?.country ?? "";
+    const dialectBase = dialectBases[userCountry] ?? `${dialectBases["syria"]!}
+
+ملاحظة: المستخدم لم يحدد دولته بعد. في أول رد لك، اطلب منه بلطف اختيار دولته من الملف الشخصي (سوريا، مصر، السعودية، الأردن، تركيا) ليتم التحدث معه بلهجته المحلية، ثم أجب على سؤاله بشكل طبيعي.`;
+    const modeSuffixes: Record<string, Record<string, string>> = {
+      ar: {
+        chat: "أجب على كل أسئلة المستخدم بشكل مفيد وذكي واحترافي.",
+        write: "أنت خبير كتابة. اكتب محتوى إبداعي عالي الجودة حسب الطلب.",
+        summarize: "لخص النصوص بدقة واحتفظ بالنقاط الرئيسية.",
+        ideas: "أعطِ أفكار إبداعية ومبتكرة وعملية.",
+        image: "المستخدم يريد إنشاء صورة. هذه الميزة حصرية لخطة PRO MAX. أخبره أن يفعّل الخطة بلهجته المحلية.",
+      },
+      tr: {
+        chat: "Kullanıcının tüm sorularına faydalı, akıllı ve profesyonel şekilde cevap ver.",
+        write: "Sen bir yazım uzmanısın. İsteğe göre yüksek kaliteli, yaratıcı içerik yaz.",
+        summarize: "Metinleri doğru şekilde özetle ve ana noktaları koru.",
+        ideas: "Yaratıcı, yenilikçi ve pratik fikirler ver.",
+        image: "Kullanıcı bir görsel oluşturmak istiyor. Bu özellik yalnızca PRO MAX planına özeldir. Planı etkinleştirmesini söyle.",
+      },
+    };
+    const suffixes = modeSuffixes[userCountry === "turkey" ? "tr" : "ar"]!;
 
     const systemPrompts: Record<string, string> = {
-      chat: `${syrianBase}\n\nأجب على كل أسئلة المستخدم بشكل مفيد وذكي واحترافي.`,
-      write: `${syrianBase}\n\nأنت خبير كتابة. اكتب محتوى إبداعي عالي الجودة حسب الطلب.`,
-      summarize: `${syrianBase}\n\nلخص النصوص بدقة واحتفظ بالنقاط الرئيسية.`,
-      ideas: `${syrianBase}\n\nأعطِ أفكار إبداعية ومبتكرة وعملية.`,
-      image: `${syrianBase}\n\nالمستخدم بده ينشئ صورة. هاي الميزة حصرية لخطة PRO MAX. خبره يفعّل الخطة.`,
+      chat: `${dialectBase}\n\n${suffixes["chat"]}`,
+      write: `${dialectBase}\n\n${suffixes["write"]}`,
+      summarize: `${dialectBase}\n\n${suffixes["summarize"]}`,
+      ideas: `${dialectBase}\n\n${suffixes["ideas"]}`,
+      image: `${dialectBase}\n\n${suffixes["image"]}`,
     };
 
     const systemPrompt = systemPrompts[mode] ?? systemPrompts["chat"]!;

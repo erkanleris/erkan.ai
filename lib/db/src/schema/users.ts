@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   bio: text("bio"),
   gender: text("gender"),
+  country: text("country"),
   avatarUrl: text("avatar_url"),
   subscriptionType: text("subscription_type").notNull().default("free"),
   subscriptionExpiresAt: timestamp("subscription_expires_at", { withTimezone: true }),

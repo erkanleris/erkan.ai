@@ -228,6 +228,7 @@ function EditModal({
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio ?? "");
   const [gender, setGender] = useState(user.gender ?? "");
+  const [country, setCountry] = useState(user.country ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -235,7 +236,7 @@ function EditModal({
     if (!name.trim()) { setErr("الاسم مطلوب"); return; }
     setBusy(true); setErr("");
     try {
-      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim(), gender });
+      const updated = await updateProfile({ name: name.trim(), username: username.trim(), bio: bio.trim(), gender, country });
       onSaved({ ...user, ...updated });
     } catch (e) { setErr((e as Error).message); }
     finally { setBusy(false); }
@@ -281,6 +282,27 @@ function EditModal({
             >
               👩 أنثى
             </button>
+          </div>
+        </div>
+        <div className="prf2-modal-field">
+          <label className="prf2-modal-label">الدولة — يحدد لهجة الذكاء الاصطناعي</label>
+          <div className="prf2-country-grid">
+            {[
+              { value: "syria", label: "🇸🇾 سوريا" },
+              { value: "egypt", label: "🇪🇬 مصر" },
+              { value: "saudi", label: "🇸🇦 السعودية" },
+              { value: "jordan", label: "🇯🇴 الأردن" },
+              { value: "turkey", label: "🇹🇷 تركيا" },
+            ].map(c => (
+              <button
+                key={c.value}
+                type="button"
+                className={`prf2-country-btn ${country === c.value ? "prf2-country-active" : ""}`}
+                onClick={() => setCountry(country === c.value ? "" : c.value)}
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="prf2-modal-row">

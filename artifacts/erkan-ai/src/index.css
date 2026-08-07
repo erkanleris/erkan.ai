@@ -3848,3 +3848,23 @@ html, body, #root {
   border-color: rgba(225,48,108,0.45);
   color: #f9a8d4;
 }
+/* ── Country selector in edit modal ── */
+.prf2-country-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.prf2-country-btn {
+  flex: 1 1 calc(33% - 8px);
+  min-width: 90px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(150,170,220,0.18);
+  background: rgba(150,170,220,0.06);
+  color: rgba(220,230,250,0.75);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.prf2-country-btn:hover { background: rgba(150,170,220,0.12); }
+.prf2-country-active {
+  background: rgba(30,136,255,0.14);
+  border-color: rgba(30,136,255,0.5);
+  color: #7db8ff;
+}

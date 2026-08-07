@@ -46,6 +46,7 @@ export type User = {
   email: string;
   bio: string | null;
   gender: string | null;
+  country: string | null;
   avatarUrl: string | null;
   subscriptionType: string;
   subscriptionExpiresAt: string | null;
@@ -125,7 +126,7 @@ export async function getProfile(): Promise<User> {
   return r.json();
 }
 
-export async function updateProfile(data: Partial<Pick<User, "name" | "username" | "bio" | "avatarUrl" | "gender">>): Promise<User> {
+export async function updateProfile(data: Partial<Pick<User, "name" | "username" | "bio" | "avatarUrl" | "gender" | "country">>): Promise<User> {
   const r = await apiFetch("/api/users/me", { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   const result = await r.json();
   if (!r.ok) throw new Error(result.error ?? "Update failed");

@@ -23,6 +23,7 @@ function userResponse(u: DbUser, overrides?: { lastLoginAt?: Date }) {
     email: u.email,
     bio: u.bio,
     gender: u.gender,
+    country: u.country,
     avatarUrl: u.avatarUrl,
     subscriptionType: u.subscriptionType,
     subscriptionExpiresAt: u.subscriptionExpiresAt,
