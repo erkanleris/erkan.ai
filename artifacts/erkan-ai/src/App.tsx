@@ -10,6 +10,7 @@ import LanguageScreen from "./pages/LanguageScreen";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import { authMe, type User } from "./lib/api";
 import { LanguageProvider, useLang } from "./lib/i18n";
+import { ThemeProvider } from "./lib/theme";
 
 function CircuitPattern({ side }: { side: "left" | "right" }) {
   const flip = side === "right";
@@ -51,7 +52,8 @@ type AppScreen =
   | { name: "activate"; data?: { plan?: string } }
   | { name: "devinfo" }
   | { name: "language" }
-  | { name: "welcome" };
+  | { name: "welcome" }
+  | { name: "theme" };
 
 function MainApp() {
   const { t, syncUserCountry, locale } = useLang();
@@ -114,6 +116,7 @@ function MainApp() {
     else if (dest === "activate") setScreen({ name: "activate", data: data as { plan?: string } });
     else if (dest === "devinfo") setScreen({ name: "devinfo" });
     else if (dest === "language") setScreen({ name: "language" });
+    else if (dest === "theme") setScreen({ name: "theme" });
     else setScreen({ name: "home" });
   };
 
@@ -155,6 +158,7 @@ function MainApp() {
   if (screen.name === "devinfo") return <DeveloperInfoScreen onBack={() => setScreen({ name: "profile" })} />;
   if (screen.name === "language") return <LanguageScreen user={user} onBack={() => setScreen({ name: "profile" })} />;
   if (screen.name === "welcome") return <WelcomeScreen onContinue={() => setScreen({ name: "home" })} />;
+  if (screen.name === "theme") return <ThemeScreen onBack={() => setScreen({ name: "profile" })} />;
 
   return (
     <div className={`splash-root ${splashOut ? "splash-fade-out" : ""}`}>
@@ -191,10 +195,14 @@ function MainApp() {
   );
 }
 
+import ThemeScreen from "./pages/ThemeScreen";
+
 export default function App() {
   return (
+    <ThemeProvider>
     <LanguageProvider>
       <MainApp />
     </LanguageProvider>
+    </ThemeProvider>
   );
 }

@@ -1,22 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>ERKAN AI</title>
-    <meta name="description" content="ERKAN AI — built on Replit. Update this description to reflect the app." />
-    <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="ERKAN AI" />
-    <meta property="og:description" content="ERKAN AI — built on Replit. Update this description to reflect the app." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ERKAN AI" />
-    <meta name="twitter:description" content="ERKAN AI — built on Replit. Update this description to reflect the app." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-  
+const fs = require('fs');
+
+let html = fs.readFileSync('artifacts/erkan-ai/index.html', 'utf8');
+
+const themeScript = `
     <script>
       (function() {
         try {
@@ -67,10 +53,9 @@
           if (colors.bg === PRESET.light.bg) root.classList.add("light-theme");
         } catch(e) {}
       })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    </script>`;
+
+html = html.replace('</head>', themeScript + '\n  </head>');
+
+fs.writeFileSync('artifacts/erkan-ai/index.html', html);
+console.log('done');

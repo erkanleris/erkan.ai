@@ -4,7 +4,7 @@ import {
   type Message, type User,
 } from "../lib/api";
 import { useLang } from "../lib/i18n";
-import { Copy, Share, RefreshCw, ThumbsUp, ThumbsDown, Globe, FileText, Image as ImageIcon, PlusCircle, Crown, AlertTriangle, Send, Download, Sparkles, Check } from "lucide-react";
+import { Copy, Share, RefreshCw, ThumbsUp, ThumbsDown, Globe, FileText, Image as ImageIcon, PlusCircle, Crown, AlertTriangle, Send, Download, Sparkles, Check, Camera, File, Music, Video, ScanText, FileSearch, QrCode, Code, FileEdit, Calculator, Calendar, Users, MapPin, Search, Mic, Table, PieChart, PenTool, MoreHorizontal, Plus } from "lucide-react";
 
 interface Props {
   onBack: () => void;
@@ -105,6 +105,8 @@ export default function ChatScreen({ onBack, conversationId: initialConvId, init
   const [dislikedIds, setDislikedIds] = useState<Set<number>>(new Set());
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [showAttach, setShowAttach] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -185,9 +187,46 @@ export default function ChatScreen({ onBack, conversationId: initialConvId, init
   const showSuggestions = msgs.length === 0 && !isStreaming;
   const isProMax = user?.subscriptionType === "pro_max";
 
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const attachOptions = [
+    { id: "camera", label: t("menuCamera"), icon: <Camera size={24} />, color: "#ef4444" }, // red
+    { id: "gallery", label: t("menuGallery"), icon: <ImageIcon size={24} />, color: "#f97316" }, // orange
+    { id: "docs", label: t("menuDocs"), icon: <FileText size={24} />, color: "#eab308" }, // yellow
+    { id: "pdf", label: t("menuPDF"), icon: <File size={24} />, color: "#84cc16" }, // green
+    { id: "audio", label: t("menuAudio"), icon: <Music size={24} />, color: "#22c55e" },
+    { id: "video", label: t("menuVideo"), icon: <Video size={24} />, color: "#10b981" },
+    { id: "ai_img", label: t("menuGenImg"), icon: <Sparkles size={24} />, color: "#14b8a6", action: () => { if (!isProMax) setShowProMax(true); else onNavigate?.("chat", { mode: "image" }); } },
+    { id: "analyze_img", label: t("menuAnalyzeImg"), icon: <ScanText size={24} />, color: "#06b6d4" },
+    { id: "analyze_file", label: t("menuAnalyzeFile"), icon: <FileSearch size={24} />, color: "#0ea5e9" },
+    { id: "ocr", label: t("menuOCR"), icon: <ScanText size={24} />, color: "#3b82f6" },
+    { id: "qr", label: t("menuQR"), icon: <QrCode size={24} />, color: "#6366f1" },
+    { id: "translate", label: t("menuTranslate"), icon: <Globe size={24} />, color: "#8b5cf6", action: () => handleSuggestion(t("transAction")) },
+    { id: "code", label: t("menuCode"), icon: <Code size={24} />, color: "#a855f7" },
+    { id: "notes", label: t("menuNotes"), icon: <FileEdit size={24} />, color: "#d946ef" },
+    { id: "calc", label: t("menuCalc"), icon: <Calculator size={24} />, color: "#ec4899" },
+    { id: "calendar", label: t("menuCalendar"), icon: <Calendar size={24} />, color: "#f43f5e" },
+    { id: "contacts", label: t("menuContacts"), icon: <Users size={24} />, color: "#f43f5e" },
+    { id: "location", label: t("menuLocation"), icon: <MapPin size={24} />, color: "#ef4444" },
+    { id: "web", label: t("menuWeb"), icon: <Search size={24} />, color: "#f97316" },
+    { id: "voice", label: t("menuVoice"), icon: <Mic size={24} />, color: "#eab308" },
+    { id: "table", label: t("menuTable"), icon: <Table size={24} />, color: "#84cc16" },
+    { id: "chart", label: t("menuChart"), icon: <PieChart size={24} />, color: "#22c55e" },
+    { id: "draw", label: t("menuDraw"), icon: <PenTool size={24} />, color: "#10b981" },
+    { id: "more", label: t("menuMore"), icon: <MoreHorizontal size={24} />, color: "#64748b" },
+  ];
+
   return (
-    <div className="chat-root">
+    <div className="chat-root" onClick={() => setShowAttach(false)}>
       <div className="chat-bg" />
+      {toastMsg && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-600/90 text-white px-4 py-2 rounded-full shadow-lg backdrop-blur z-50 animate-in fade-in slide-in-from-top-4">
+          {toastMsg}
+        </div>
+      )}
       {showProMax && <ProMaxPopup onClose={() => setShowProMax(false)} onNavigate={onNavigate} t={t} isRtl={isRtl} />}
       {showLimit && <LimitReachedPopup onClose={() => setShowLimit(false)} onNavigate={onNavigate} plan={limitPlan} t={t} isRtl={isRtl} />}
 
@@ -325,14 +364,37 @@ export default function ChatScreen({ onBack, conversationId: initialConvId, init
       </div>
 
       <div className="chat-input-bar">
-        <div className="chat-input-wrap" dir={isRtl ? "rtl" : "ltr"}>
-          <button className="chat-input-mic" aria-label="mic" onClick={() => onNavigate?.("chat", { mode: currentMode })}>
-            <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><rect x="9" y="2" width="6" height="11" rx="3" stroke="white" strokeWidth="1.8" /><path d="M5 10a7 7 0 0 0 14 0" stroke="white" strokeWidth="1.8" strokeLinecap="round" /><line x1="12" y1="17" x2="12" y2="21" stroke="white" strokeWidth="1.8" strokeLinecap="round" /></svg>
+        {showAttach && (
+          <div className={`chat-attach-menu ${isRtl ? "rtl" : "ltr"}`} onClick={e => e.stopPropagation()}>
+            {attachOptions.map(opt => (
+              <button 
+                key={opt.id} 
+                className="attach-item ripple-btn"
+                onClick={() => {
+                  setShowAttach(false);
+                  if (opt.action) opt.action();
+                  else showToast(t("comingSoon"));
+                }}
+              >
+                <div className="attach-icon-wrap" style={{ background: opt.color }}>
+                  {opt.icon}
+                </div>
+                <span className="attach-label">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="chat-input-wrap" dir={isRtl ? "rtl" : "ltr"} onClick={e => e.stopPropagation()}>
+          <button 
+            className={`chat-plus-btn ripple-btn ${showAttach ? "active" : ""}`}
+            onClick={() => setShowAttach(!showAttach)}
+          >
+            <Plus size={24} strokeWidth={2.5} />
           </button>
           <textarea ref={textareaRef} className="chat-input" placeholder={currentMode === "image" ? t("imgInput") : t("chatInput")} rows={1} value={input} onChange={handleTextareaChange} onKeyDown={handleKeyDown} />
           {isStreaming
-            ? <button className="chat-stop-btn" onClick={handleStop} aria-label="stop"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="2" /></svg></button>
-            : <button className={`chat-send-btn ${input.trim() ? "active" : ""}`} onClick={handleSend} disabled={!input.trim()} aria-label="send"><Send size={16} className={isRtl ? "rotate-180" : ""} color="#fff" /></button>}
+            ? <button className="chat-stop-btn ripple-btn" onClick={handleStop} aria-label="stop"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="2" /></svg></button>
+            : <button className={`chat-send-btn ripple-btn ${input.trim() ? "active" : ""}`} onClick={handleSend} disabled={!input.trim()} aria-label="send"><Send size={16} className={isRtl ? "rotate-180" : ""} color="#fff" /></button>}
         </div>
       </div>
     </div>

@@ -318,7 +318,7 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
 
       <div className="prf2-scroll">
         <div className="prf2-hero">
-          <div className="prf2-hero-cover" style={{ background: plan === "pro_max" ? "linear-gradient(135deg,#1a0533,#2d0b5a,#12063a)" : plan === "pro" ? "linear-gradient(135deg,#020d2a,#072258,#04091e)" : "linear-gradient(135deg,#0a0f22,#111827,#070b18)" }} />
+          <div className="prf2-hero-cover" style={{ background: "var(--bubble-user)" }} />
           <div className="prf2-hero-body" dir={isRtl ? "rtl" : "ltr"}>
             <AvatarUpload avatarUrl={user.avatarUrl} name={user.name} plan={plan} onUpload={handleAvatarUpload} />
             <div className="prf2-hero-info">
@@ -428,7 +428,9 @@ export default function ProfileScreen({ user: initUser, onUserUpdate, onLogout, 
             {[
               { icon: <Edit2 size={16} />, label: t("editProfile"), sub: `${user.name} · @${user.username}`, onClick: () => setModal("edit") },
               { icon: <Key size={16} />, label: t("changePass"), sub: "••••••••", onClick: () => setModal("pwd") },
-              { icon: <Globe size={16} />, label: t("langMenuLabel"), sub: t("langMenuSub"), onClick: () => onNavigate?.("language") },
+                            { icon: <Globe size={16} />, label: t("langMenuLabel"), sub: t("langMenuSub"), onClick: () => onNavigate?.("language") },
+              { icon: <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="2"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10c0 1.5-.5 2.5-1.5 2.5S19 14 19 13a3 3 0 1 0-6 0c0 3 4.5 4 4.5 7.5 0 1.5-1.5 1.5-5.5 1.5z"/></svg>, label: t("themeTitle"), sub: t("themeSub"), onClick: () => onNavigate?.("theme") },
+
               { icon: <Info size={16} />, label: t("devInfo"), sub: "ERKAN AI · TRSY", onClick: () => onNavigate?.("devinfo") },
             ].map((item, i, arr) => (
               <div key={item.label}>
