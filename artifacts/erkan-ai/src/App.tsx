@@ -6,7 +6,10 @@ import ProfileScreen from "./pages/ProfileScreen";
 import PlansScreen from "./pages/PlansScreen";
 import ActivateScreen from "./pages/ActivateScreen";
 import DeveloperInfoScreen from "./pages/DeveloperInfoScreen";
+import LanguageScreen from "./pages/LanguageScreen";
+import WelcomeScreen from "./pages/WelcomeScreen";
 import { authMe, type User } from "./lib/api";
+import { LanguageProvider, useLang } from "./lib/i18n";
 
 function CircuitPattern({ side }: { side: "left" | "right" }) {
   const flip = side === "right";
@@ -46,9 +49,12 @@ type AppScreen =
   | { name: "profile" }
   | { name: "plans" }
   | { name: "activate"; data?: { plan?: string } }
-  | { name: "devinfo" };
+  | { name: "devinfo" }
+  | { name: "language" }
+  | { name: "welcome" };
 
-export default function App() {
+function MainApp() {
+  const { t, syncUserCountry, locale } = useLang();
   const [pct, setPct] = useState(0);
   const [splashOut, setSplashOut] = useState(false);
   const [screen, setScreen] = useState<AppScreen>({ name: "loading" });
@@ -64,19 +70,36 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (user && user.country) {
+      syncUserCountry(user.country);
+    }
+  }, [user, syncUserCountry]);
+
+  useEffect(() => {
     if (screen.name !== "loading") return;
     const animate = (ts: number) => {
       if (!startRef.current) startRef.current = ts;
-      const t = Math.min((ts - startRef.current) / DURATION, 1);
-      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const tProgress = Math.min((ts - startRef.current) / DURATION, 1);
+      const eased = tProgress < 0.5 ? 2 * tProgress * tProgress : -1 + (4 - 2 * tProgress) * tProgress;
       setPct(Math.floor(eased * 100));
-      if (t < 1) {
+      if (tProgress < 1) {
         rafRef.current = requestAnimationFrame(animate);
       } else {
         setPct(100);
         authMe().then(u => {
-          if (u) { setUser(u); setSplashOut(true); setTimeout(() => setScreen({ name: "home" }), 500); }
-          else { setSplashOut(true); setTimeout(() => setScreen({ name: "login" }), 500); }
+          if (u) {
+            setUser(u); setSplashOut(true); 
+            setTimeout(() => {
+              if (localStorage.getItem("erkan_welcome") === "true") {
+                localStorage.removeItem("erkan_welcome");
+                setScreen({ name: "welcome" });
+              } else {
+                setScreen({ name: "home" });
+              }
+            }, 500);
+          } else { 
+            setSplashOut(true); setTimeout(() => setScreen({ name: "login" }), 500); 
+          }
         }).catch(() => { setSplashOut(true); setTimeout(() => setScreen({ name: "login" }), 500); });
       }
     };
@@ -90,6 +113,7 @@ export default function App() {
     else if (dest === "plans") setScreen({ name: "plans" });
     else if (dest === "activate") setScreen({ name: "activate", data: data as { plan?: string } });
     else if (dest === "devinfo") setScreen({ name: "devinfo" });
+    else if (dest === "language") setScreen({ name: "language" });
     else setScreen({ name: "home" });
   };
 
@@ -129,6 +153,8 @@ export default function App() {
     />
   );
   if (screen.name === "devinfo") return <DeveloperInfoScreen onBack={() => setScreen({ name: "profile" })} />;
+  if (screen.name === "language") return <LanguageScreen user={user} onBack={() => setScreen({ name: "profile" })} />;
+  if (screen.name === "welcome") return <WelcomeScreen onContinue={() => setScreen({ name: "home" })} />;
 
   return (
     <div className={`splash-root ${splashOut ? "splash-fade-out" : ""}`}>
@@ -148,13 +174,13 @@ export default function App() {
           <span className="app-name-erkan">ERKAN </span>
           <span className="app-name-ai">AI</span>
         </div>
-        <p className="slogan-arabic anim-fade-up" dir="rtl" style={{ animationDelay: "0.28s" }}>ذكاء اصطناعي بلا حدود</p>
+        <p className="slogan-arabic anim-fade-up" dir={locale === "turkish" ? "ltr" : "rtl"} style={{ animationDelay: "0.28s" }}>{t("slogan")}</p>
         <div className="loader-section anim-fade-up" style={{ animationDelay: "0.42s" }}>
           <div className="loading-bar-track">
             <div className="loading-bar-fill" style={{ width: `${pct}%` }} />
             <div className="loading-bar-glow" style={{ width: `${pct}%` }} />
           </div>
-          <p className="loading-text-arabic" dir="rtl">جاري التحميل...</p>
+          <p className="loading-text-arabic" dir={locale === "turkish" ? "ltr" : "rtl"}>{t("loading")}</p>
           <div className="pct-counter">
             <span className="pct-value">{pct}</span>
             <span className="pct-sign">%</span>
@@ -162,5 +188,13 @@ export default function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <MainApp />
+    </LanguageProvider>
   );
 }

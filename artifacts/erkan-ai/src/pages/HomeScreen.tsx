@@ -1,49 +1,36 @@
 import { useState, useEffect } from "react";
 import { getConversations, deleteConversation, type Conversation, type User } from "../lib/api";
+import { useLang } from "../lib/i18n";
+import { Sparkles, MessageCircle, Crown, Lock, Gem, Menu, Trash2, Send } from "lucide-react";
 
 interface Props {
   onNavigate: (screen: string, data?: unknown) => void;
   user?: User | null;
 }
 
-/* ─── Lock modal (Pro Max gate) ──────────────── */
-function LockModal({ onClose, onActivate }: { onClose: () => void; onActivate: () => void }) {
+function LockModal({ onClose, onActivate, t, isRtl }: { onClose: () => void; onActivate: () => void; t: any; isRtl: boolean }) {
   return (
     <div className="lock-overlay" onClick={onClose}>
-      <div className="lock-modal" dir="rtl" onClick={e => e.stopPropagation()}>
+      <div className="lock-modal" dir={isRtl ? "rtl" : "ltr"} onClick={e => e.stopPropagation()}>
         <div className="lock-modal-handle" />
-        <div className="lock-modal-icon">🔒</div>
-        <h3 className="lock-modal-title">ميزة حصرية</h3>
-        <p className="lock-modal-desc">
-          هذه الميزة متوفرة فقط لمشتركي <strong>برو ماكس</strong>
-        </p>
+        <div className="text-4xl mb-2 text-indigo-400"><Lock size={48} /></div>
+        <h3 className="lock-modal-title">{t("exclusive")}</h3>
+        <p className="lock-modal-desc">{t("exclusiveSub")}</p>
         <button className="lock-modal-activate-btn" onClick={onActivate}>
-          💎 تفعيل برو ماكس
+          <Gem size={18} /> {t("activatePromax")}
         </button>
         <button className="lock-modal-close-btn" onClick={onClose}>
-          إغلاق
+          {t("close")}
         </button>
       </div>
     </div>
   );
 }
 
-const TOOLS = [
-  { id: "chat",      label: "محادثة ذكية",   sub: "تحدث مع الذكاء الاصطناعي",  color: "#1f8bff", bg: "rgba(31,139,255,0.12)", locked: false,
-    icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t1g)" opacity="0.15"/><path d="M8 10h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3V12a2 2 0 0 1 2-2z" fill="url(#t1g)" /><circle cx="12" cy="16" r="1.5" fill="white" /><circle cx="16" cy="16" r="1.5" fill="white" /><circle cx="20" cy="16" r="1.5" fill="white" /><defs><linearGradient id="t1g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1f8bff"/><stop offset="1" stopColor="#6c3eff"/></linearGradient></defs></svg> },
-  { id: "write",     label: "كتابة نصوص",    sub: "مقالات، محتوى، ومنشورات",   color: "#a855f7", bg: "rgba(168,85,247,0.12)", locked: true,
-    icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t2g)" opacity="0.15"/><path d="M8 22l2-6 12-12 4 4-12 12-6 2z" fill="url(#t2g)" /><path d="M20 6l4 4" stroke="white" strokeWidth="1.5" /><defs><linearGradient id="t2g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#a855f7"/><stop offset="1" stopColor="#6366f1"/></linearGradient></defs></svg> },
-  { id: "summarize", label: "تلخيص",         sub: "لخّص النصوص الطويلة",       color: "#06b6d4", bg: "rgba(6,182,212,0.12)",  locked: true,
-    icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t3g)" opacity="0.15"/><rect x="8" y="9" width="16" height="2.5" rx="1.25" fill="url(#t3g)" /><rect x="8" y="14" width="12" height="2.5" rx="1.25" fill="url(#t3g)" /><rect x="8" y="19" width="8" height="2.5" rx="1.25" fill="url(#t3g)" /><defs><linearGradient id="t3g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#06b6d4"/><stop offset="1" stopColor="#1f8bff"/></linearGradient></defs></svg> },
-  { id: "ideas",     label: "أفكار وإلهام",  sub: "احصل على أفكار إبداعية",    color: "#f59e0b", bg: "rgba(245,158,11,0.12)", locked: true,
-    icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t4g)" opacity="0.15"/><path d="M16 7a7 7 0 0 1 5 12l-1 2H12l-1-2A7 7 0 0 1 16 7z" fill="url(#t4g)" /><rect x="13" y="21" width="6" height="2" rx="1" fill="url(#t4g)" /><rect x="14" y="23.5" width="4" height="1.5" rx="0.75" fill="url(#t4g)" /><defs><linearGradient id="t4g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#f59e0b"/><stop offset="1" stopColor="#ef4444"/></linearGradient></defs></svg> },
-  { id: "image",     label: "صور بالذكاء",   sub: "أنشئ صوراً احترافية",       color: "#ec4899", bg: "rgba(236,72,153,0.12)", locked: true,
-    icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t5g)" opacity="0.15"/><rect x="6" y="9" width="20" height="15" rx="2" fill="url(#t5g)" /><circle cx="11" cy="13.5" r="2" fill="white" opacity="0.9" /><path d="M6 21l6-5 4 4 3-3 7 7" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><defs><linearGradient id="t5g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ec4899"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs></svg> },
-];
-
 type NavTab = "home" | "tools" | "chats";
 
 export default function HomeScreen({ onNavigate, user }: Props) {
+  const { t, locale, formatTime, formatDate } = useLang();
   const userName = user?.name ?? "مستخدم";
   const [input, setInput] = useState("");
   const [activeTab, setActiveTab] = useState<NavTab>("home");
@@ -51,7 +38,21 @@ export default function HomeScreen({ onNavigate, user }: Props) {
   const [loadingConvs, setLoadingConvs] = useState(false);
   const [lockModal, setLockModal] = useState(false);
 
+  const isRtl = locale !== "turkish";
   const isProMax = user?.subscriptionType === "pro_max";
+
+  const TOOLS = [
+    { id: "chat",      label: t("toolChatLabel"),   sub: t("toolChatSub"),  color: "#1f8bff", bg: "rgba(31,139,255,0.12)", locked: false,
+      icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t1g)" opacity="0.15"/><path d="M8 10h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3V12a2 2 0 0 1 2-2z" fill="url(#t1g)" /><circle cx="12" cy="16" r="1.5" fill="white" /><circle cx="16" cy="16" r="1.5" fill="white" /><circle cx="20" cy="16" r="1.5" fill="white" /><defs><linearGradient id="t1g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1f8bff"/><stop offset="1" stopColor="#6c3eff"/></linearGradient></defs></svg> },
+    { id: "write",     label: t("toolWriteLabel"),    sub: t("toolWriteSub"),   color: "#a855f7", bg: "rgba(168,85,247,0.12)", locked: true,
+      icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t2g)" opacity="0.15"/><path d="M8 22l2-6 12-12 4 4-12 12-6 2z" fill="url(#t2g)" /><path d="M20 6l4 4" stroke="white" strokeWidth="1.5" /><defs><linearGradient id="t2g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#a855f7"/><stop offset="1" stopColor="#6366f1"/></linearGradient></defs></svg> },
+    { id: "summarize", label: t("toolSumLabel"),         sub: t("toolSumSub"),       color: "#06b6d4", bg: "rgba(6,182,212,0.12)",  locked: true,
+      icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t3g)" opacity="0.15"/><rect x="8" y="9" width="16" height="2.5" rx="1.25" fill="url(#t3g)" /><rect x="8" y="14" width="12" height="2.5" rx="1.25" fill="url(#t3g)" /><rect x="8" y="19" width="8" height="2.5" rx="1.25" fill="url(#t3g)" /><defs><linearGradient id="t3g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#06b6d4"/><stop offset="1" stopColor="#1f8bff"/></linearGradient></defs></svg> },
+    { id: "ideas",     label: t("toolIdeaLabel"),  sub: t("toolIdeaSub"),    color: "#f59e0b", bg: "rgba(245,158,11,0.12)", locked: true,
+      icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t4g)" opacity="0.15"/><path d="M16 7a7 7 0 0 1 5 12l-1 2H12l-1-2A7 7 0 0 1 16 7z" fill="url(#t4g)" /><rect x="13" y="21" width="6" height="2" rx="1" fill="url(#t4g)" /><rect x="14" y="23.5" width="4" height="1.5" rx="0.75" fill="url(#t4g)" /><defs><linearGradient id="t4g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#f59e0b"/><stop offset="1" stopColor="#ef4444"/></linearGradient></defs></svg> },
+    { id: "image",     label: t("toolImgLabel"),   sub: t("toolImgSub"),       color: "#ec4899", bg: "rgba(236,72,153,0.12)", locked: true,
+      icon: <svg viewBox="0 0 32 32" fill="none" width="36" height="36"><circle cx="16" cy="16" r="14" fill="url(#t5g)" opacity="0.15"/><rect x="6" y="9" width="20" height="15" rx="2" fill="url(#t5g)" /><circle cx="11" cy="13.5" r="2" fill="white" opacity="0.9" /><path d="M6 21l6-5 4 4 3-3 7 7" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><defs><linearGradient id="t5g" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ec4899"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs></svg> },
+  ];
 
   const loadConversations = () => {
     setLoadingConvs(true);
@@ -72,16 +73,16 @@ export default function HomeScreen({ onNavigate, user }: Props) {
     setConversations(prev => prev.filter(c => c.id !== id));
   };
 
-  const formatDate = (dateStr: string) => {
+  const getRelativeTime = (dateStr: string) => {
     const d = new Date(dateStr);
     const diff = Date.now() - d.getTime();
     const mins = Math.floor(diff / 60000);
     const hours = Math.floor(mins / 60);
     const days = Math.floor(hours / 24);
-    if (mins < 1) return "الآن";
-    if (mins < 60) return `منذ ${mins} د`;
-    if (hours < 24) return `منذ ${hours} س`;
-    return `منذ ${days} يوم`;
+    if (mins < 1) return t("justNow");
+    if (mins < 60) return t("minsAgo", { mins });
+    if (hours < 24) return t("hoursAgo", { hours });
+    return t("daysAgo", { days });
   };
 
   const handleToolClick = (tool: typeof TOOLS[0]) => {
@@ -103,25 +104,27 @@ export default function HomeScreen({ onNavigate, user }: Props) {
         <LockModal
           onClose={() => setLockModal(false)}
           onActivate={() => { setLockModal(false); onNavigate("activate"); }}
+          t={t}
+          isRtl={isRtl}
         />
       )}
 
       {/* ── Header ── */}
-      <header className="hs-header">
+      <header className="hs-header" dir={isRtl ? "rtl" : "ltr"}>
         <button className="hs-menu-btn" onClick={() => onNavigate("profile")} aria-label="Menu">
-          <span className="hs-menu-line" /><span className="hs-menu-line short" /><span className="hs-menu-line" />
+          <Menu size={24} />
         </button>
         <button className="hs-logo-center" onClick={() => onNavigate("chat", { mode: "chat" })} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderRadius: 12 }}>
           <img src="/erkan-ai-logo.png" alt="EA" className="hs-header-logo-img" draggable={false} />
-          <span className="hs-header-brand">
+          <span className="hs-header-brand" dir="ltr">
             <span className="hs-hb-erkan">ERKAN </span><span className="hs-hb-ai">AI</span>
           </span>
         </button>
-        <button className="hs-notif-btn" onClick={() => onNavigate("plans")} aria-label="Plans" title="الخطط والأسعار">
+        <button className="hs-notif-btn" onClick={() => onNavigate("plans")} aria-label="Plans" title={t("plansTitle")}>
           {isProMax ? (
-            <span style={{ fontSize: 20 }}>💎</span>
+            <Gem size={20} className="text-purple-400" />
           ) : user?.subscriptionType === "pro" ? (
-            <span style={{ fontSize: 20 }}>👑</span>
+            <Crown size={20} className="text-blue-400" />
           ) : (
             <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -132,19 +135,21 @@ export default function HomeScreen({ onNavigate, user }: Props) {
       </header>
 
       <div className="hs-scroll">
-
         {/* ── Home tab ── */}
         {activeTab === "home" && (
           <>
-            <div className="hs-greeting" dir="rtl">
-              <div className="hs-greet-row"><span className="hs-wave">👋</span><h1 className="hs-greet-name">مرحباً {userName}</h1></div>
-              <p className="hs-greet-sub">شو بدك نساعدك فيه اليوم؟</p>
-              <p className="hs-greet-tagline">وللمستخدم العربي وبلهجتك</p>
+            <div className="hs-greeting" dir={isRtl ? "rtl" : "ltr"}>
+              <div className="hs-greet-row">
+                <Sparkles size={24} className="text-indigo-400 mr-2" />
+                <h1 className="hs-greet-name">{t("homeGreet", { name: userName })}</h1>
+              </div>
+              <p className="hs-greet-sub">{t("homeSub")}</p>
+              <p className="hs-greet-tagline">{t("homeTag")}</p>
             </div>
 
             {/* Search bar / main chat input */}
             <div className="hs-search-wrap">
-              <div className="hs-search-bar">
+              <div className="hs-search-bar" dir={isRtl ? "rtl" : "ltr"}>
                 <button className="hs-mic-btn" onClick={() => onNavigate("chat", { mode: "chat" })} aria-label="Voice input">
                   <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
                     <rect x="9" y="2" width="6" height="12" rx="3" fill="url(#micg)" />
@@ -154,36 +159,35 @@ export default function HomeScreen({ onNavigate, user }: Props) {
                   </svg>
                 </button>
                 <input
-                  className="hs-search-input" placeholder="اكتب سؤالك أو طلبك هنا..." dir="rtl"
+                  className="hs-search-input" placeholder={t("homeSearch")} dir={isRtl ? "rtl" : "ltr"}
                   value={input} onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 />
                 <button className={`hs-send-btn ${input.trim() ? "active" : ""}`} onClick={handleSend} aria-label="Send">
-                  <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-                    <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Send size={16} className={isRtl ? "rotate-180" : ""} color="#fff" />
                 </button>
               </div>
             </div>
 
-            <div className="hs-section-label" dir="rtl"><span className="hs-section-icon">✨</span> الأدوات السريعة</div>
-            <div className="hs-tools-grid">
-              {TOOLS.map((t) => {
-                const locked = t.locked && !isProMax;
+            <div className="hs-section-label" dir={isRtl ? "rtl" : "ltr"}>
+              <Sparkles size={16} className="mr-2 inline" /> {t("quickTools")}
+            </div>
+            <div className="hs-tools-grid" dir={isRtl ? "rtl" : "ltr"}>
+              {TOOLS.map((tItem) => {
+                const locked = tItem.locked && !isProMax;
                 return (
                   <button
-                    key={t.id}
+                    key={tItem.id}
                     className={`hs-tool-card ${locked ? "hs-tool-locked" : ""}`}
-                    style={{ "--tool-color": t.color, "--tool-bg": t.bg } as React.CSSProperties}
-                    onClick={() => handleToolClick(t)}
+                    style={{ "--tool-color": tItem.color, "--tool-bg": tItem.bg } as React.CSSProperties}
+                    onClick={() => handleToolClick(tItem)}
                   >
-                    <div className="hs-tool-icon">{t.icon}</div>
-                    <div className="hs-tool-label" dir="rtl">{t.label}</div>
-                    <div className="hs-tool-sub" dir="rtl">{t.sub}</div>
+                    <div className="hs-tool-icon">{tItem.icon}</div>
+                    <div className="hs-tool-label">{tItem.label}</div>
+                    <div className="hs-tool-sub">{tItem.sub}</div>
                     {locked && (
                       <div className="hs-tool-lock-overlay">
-                        <span className="hs-tool-lock-icon">🔒</span>
+                        <Lock size={20} />
                       </div>
                     )}
                   </button>
@@ -193,35 +197,37 @@ export default function HomeScreen({ onNavigate, user }: Props) {
 
             {/* Subscription banner */}
             {!isProMax && (
-              <button className="hs-pro-banner" onClick={() => onNavigate("activate")}>
-                <div className="hs-pro-crown">💎</div>
-                <div className="hs-pro-text" dir="rtl">
-                  <div className="hs-pro-title">PRO MAX</div>
-                  <div className="hs-pro-desc">افتح جميع الأدوات والصفحات بدون قيود</div>
+              <button className="hs-pro-banner" onClick={() => onNavigate("activate")} dir={isRtl ? "rtl" : "ltr"}>
+                <Gem size={28} className="text-purple-300" />
+                <div className="hs-pro-text">
+                  <div className="hs-pro-title" dir="ltr">PRO MAX</div>
+                  <div className="hs-pro-desc">{t("promaxImgDesc").slice(0, 50)}...</div>
                 </div>
-                <div className="hs-pro-btn">فعّل الآن</div>
+                <div className="hs-pro-btn">{t("activatePromax")}</div>
                 <div className="hs-pro-glow" />
               </button>
             )}
 
             {isProMax && (
-              <div className="hs-pro-active-banner" dir="rtl">
-                <span>💎</span>
+              <div className="hs-pro-active-banner" dir={isRtl ? "rtl" : "ltr"}>
+                <Gem size={20} className="text-purple-400" />
                 <div>
-                  <div className="hs-pro-active-title">خطة PRO MAX مفعّلة</div>
+                  <div className="hs-pro-active-title">{t("promaxActive")}</div>
                   {user?.subscriptionExpiresAt && (
-                    <div className="hs-pro-active-exp">تنتهي: {new Date(user.subscriptionExpiresAt).toLocaleDateString("ar-SA")}</div>
+                    <div className="hs-pro-active-exp">{t("expires", { date: formatDate(user.subscriptionExpiresAt) })}</div>
                   )}
                 </div>
-                <button className="hs-manage-sub-btn" onClick={() => onNavigate("plans")}>إدارة</button>
+                <button className="hs-manage-sub-btn" onClick={() => onNavigate("plans")}>{t("manage")}</button>
               </div>
             )}
 
-            <div className="hs-section-label" dir="rtl"><span className="hs-section-icon">💬</span> آخر المحادثات</div>
+            <div className="hs-section-label" dir={isRtl ? "rtl" : "ltr"}>
+              <MessageCircle size={16} className="mr-2 inline" /> {t("latestChats")}
+            </div>
             {conversations.length === 0 ? (
-              <div className="hs-empty-convs" dir="rtl"><p>لا توجد محادثات بعد. ابدأ محادثة جديدة!</p></div>
+              <div className="hs-empty-convs" dir={isRtl ? "rtl" : "ltr"}><p>{t("noChats")}</p></div>
             ) : (
-              <div className="hs-convs-list">
+              <div className="hs-convs-list" dir={isRtl ? "rtl" : "ltr"}>
                 {conversations.slice(0, 5).map((c) => (
                   <button key={c.id} className="hs-conv-item" onClick={() => onNavigate("chat", { conversationId: c.id, mode: c.mode })}>
                     <div className="hs-conv-icon">
@@ -231,18 +237,18 @@ export default function HomeScreen({ onNavigate, user }: Props) {
                         <defs><linearGradient id="cig" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1f8bff"/><stop offset="1" stopColor="#8a2eff"/></linearGradient></defs>
                       </svg>
                     </div>
-                    <div className="hs-conv-body" dir="rtl">
+                    <div className="hs-conv-body">
                       <div className="hs-conv-title">{c.title}</div>
-                      <div className="hs-conv-date">{formatDate(c.updatedAt)}</div>
+                      <div className="hs-conv-date">{getRelativeTime(c.updatedAt)}</div>
                     </div>
-                    <button className="hs-conv-menu" onClick={(e) => handleDeleteConv(e, c.id)} aria-label="Delete" title="حذف">
-                      <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    <button className="hs-conv-menu" onClick={(e) => handleDeleteConv(e, c.id)} aria-label="Delete" title={t("deleteAcc")}>
+                      <Trash2 size={16} />
                     </button>
                   </button>
                 ))}
                 {conversations.length > 5 && (
-                  <button className="hs-see-all-btn" onClick={() => setActiveTab("chats")} dir="rtl">
-                    عرض الكل ({conversations.length}) ←
+                  <button className="hs-see-all-btn" onClick={() => setActiveTab("chats")} dir={isRtl ? "rtl" : "ltr"}>
+                    {t("seeAll")} ←
                   </button>
                 )}
               </div>
@@ -253,15 +259,15 @@ export default function HomeScreen({ onNavigate, user }: Props) {
         {/* ── Tools tab ── */}
         {activeTab === "tools" && isProMax && (
           <div className="hs-tab-content">
-            <h2 className="hs-tab-heading" dir="rtl">🛠️ جميع الأدوات</h2>
-            <div className="hs-tools-grid-full">
-              {TOOLS.map((t) => (
-                <button key={t.id} className="hs-tool-card"
-                  style={{ "--tool-color": t.color, "--tool-bg": t.bg } as React.CSSProperties}
-                  onClick={() => onNavigate("chat", { mode: t.id })}>
-                  <div className="hs-tool-icon">{t.icon}</div>
-                  <div className="hs-tool-label" dir="rtl">{t.label}</div>
-                  <div className="hs-tool-sub" dir="rtl">{t.sub}</div>
+            <h2 className="hs-tab-heading" dir={isRtl ? "rtl" : "ltr"}><Sparkles size={20} className="inline mr-2" /> {t("allTools")}</h2>
+            <div className="hs-tools-grid-full" dir={isRtl ? "rtl" : "ltr"}>
+              {TOOLS.map((tItem) => (
+                <button key={tItem.id} className="hs-tool-card"
+                  style={{ "--tool-color": tItem.color, "--tool-bg": tItem.bg } as React.CSSProperties}
+                  onClick={() => onNavigate("chat", { mode: tItem.id })}>
+                  <div className="hs-tool-icon">{tItem.icon}</div>
+                  <div className="hs-tool-label">{tItem.label}</div>
+                  <div className="hs-tool-sub">{tItem.sub}</div>
                 </button>
               ))}
             </div>
@@ -271,16 +277,16 @@ export default function HomeScreen({ onNavigate, user }: Props) {
         {/* ── Chats tab ── */}
         {activeTab === "chats" && (
           <div className="hs-tab-content">
-            <div className="hs-tab-header" dir="rtl">
-              <h2 className="hs-tab-heading">💬 المحادثات</h2>
+            <div className="hs-tab-header" dir={isRtl ? "rtl" : "ltr"}>
+              <h2 className="hs-tab-heading"><MessageCircle size={20} className="inline mr-2" /> {t("chatsTitle")}</h2>
               <button className="hs-refresh-btn" onClick={loadConversations} disabled={loadingConvs}>
                 {loadingConvs ? "..." : "🔄"}
               </button>
             </div>
             {conversations.length === 0 ? (
-              <div className="hs-empty-convs" dir="rtl"><p>لا توجد محادثات بعد.</p></div>
+              <div className="hs-empty-convs" dir={isRtl ? "rtl" : "ltr"}><p>{t("noChats")}</p></div>
             ) : (
-              <div className="hs-convs-list">
+              <div className="hs-convs-list" dir={isRtl ? "rtl" : "ltr"}>
                 {conversations.map((c) => (
                   <button key={c.id} className="hs-conv-item" onClick={() => onNavigate("chat", { conversationId: c.id, mode: c.mode })}>
                     <div className="hs-conv-icon">
@@ -290,12 +296,12 @@ export default function HomeScreen({ onNavigate, user }: Props) {
                         <defs><linearGradient id="cig2" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1f8bff"/><stop offset="1" stopColor="#8a2eff"/></linearGradient></defs>
                       </svg>
                     </div>
-                    <div className="hs-conv-body" dir="rtl">
+                    <div className="hs-conv-body">
                       <div className="hs-conv-title">{c.title}</div>
-                      <div className="hs-conv-date">{formatDate(c.updatedAt)} · {c.mode}</div>
+                      <div className="hs-conv-date">{getRelativeTime(c.updatedAt)} · {c.mode}</div>
                     </div>
-                    <button className="hs-conv-menu" onClick={(e) => handleDeleteConv(e, c.id)} title="حذف">
-                      <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    <button className="hs-conv-menu" onClick={(e) => handleDeleteConv(e, c.id)} title={t("deleteAcc")}>
+                      <Trash2 size={16} />
                     </button>
                   </button>
                 ))}
@@ -308,16 +314,16 @@ export default function HomeScreen({ onNavigate, user }: Props) {
       </div>
 
       {/* ── Bottom Nav ── */}
-      <nav className="hs-bottom-nav">
+      <nav className="hs-bottom-nav" dir={isRtl ? "rtl" : "ltr"}>
         <button className={`hs-nav-btn ${activeTab === "home" ? "active" : ""}`} onClick={() => setActiveTab("home")}>
-          <HomeIcon active={activeTab === "home"} /><span className="hs-nav-label">الرئيسية</span>
+          <HomeIcon active={activeTab === "home"} /><span className="hs-nav-label">{t("navHome")}</span>
         </button>
 
         {/* Tools — locked for non-promax */}
         <button className={`hs-nav-btn ${activeTab === "tools" ? "active" : ""}`} onClick={handleTabTools} style={{ position: "relative" }}>
           <ToolsIcon active={activeTab === "tools"} />
-          <span className="hs-nav-label">الأدوات</span>
-          {!isProMax && <span className="hs-nav-lock">🔒</span>}
+          <span className="hs-nav-label">{t("navTools")}</span>
+          {!isProMax && <span className="hs-nav-lock"><Lock size={12} /></span>}
         </button>
 
         {/* Center — chat */}
@@ -327,10 +333,10 @@ export default function HomeScreen({ onNavigate, user }: Props) {
         </button>
 
         <button className={`hs-nav-btn ${activeTab === "chats" ? "active" : ""}`} onClick={() => setActiveTab("chats")}>
-          <ChatIcon active={activeTab === "chats"} /><span className="hs-nav-label">المحادثات</span>
+          <ChatIcon active={activeTab === "chats"} /><span className="hs-nav-label">{t("navChats")}</span>
         </button>
         <button className="hs-nav-btn" onClick={() => onNavigate("profile")}>
-          <ProfileIcon active={false} /><span className="hs-nav-label">ملفي</span>
+          <ProfileIcon active={false} /><span className="hs-nav-label">{t("navProfile")}</span>
         </button>
       </nav>
     </div>
