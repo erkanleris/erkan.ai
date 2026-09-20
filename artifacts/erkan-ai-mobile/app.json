@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "ERKAN AI Android",
+    "slug": "erkan-ai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/erkan-ai-circular-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#020817"
+    },
+    "scheme": "erkanai",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.trsy.erkanai",
+      "permissions": ["POST_NOTIFICATIONS"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "scheme": "erkanai", "host": "oauth" }]
+        }
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#050a1b"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": ["expo-router", "expo-notifications"],
+    "extra": {
+      "eas": {
+        "projectId": "2f5ed330-0046-4b90-b6a5-e32aba188b9d"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

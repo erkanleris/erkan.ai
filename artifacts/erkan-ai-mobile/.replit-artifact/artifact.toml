@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/erkan-ai-mobile/"
+title = "ERKAN AI Android"
+description = "Native Android companion for ERKAN AI using Expo and React Native, connected to the existing ERKAN AI API for authentication, Arabic conversations, notifications, privacy, and wallet features."
+version = "1.0.0"
+id = "artifacts/erkan-ai-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/erkan-ai-mobile/" ]
+localPort = 23677
+
+[services.development]
+run = "pnpm --filter @workspace/erkan-ai-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/erkan-ai-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/erkan-ai-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "23677"
+BASE_PATH = "/erkan-ai-mobile/"
