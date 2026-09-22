@@ -2,7 +2,7 @@
   "expo": {
     "name": "ERKAN AI Android",
     "slug": "erkan-ai-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -13,10 +13,12 @@
     "scheme": "erkanai",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.trsy.erkanai",
+      "versionCode": 2,
       "permissions": ["POST_NOTIFICATIONS"],
       "intentFilters": [
         {

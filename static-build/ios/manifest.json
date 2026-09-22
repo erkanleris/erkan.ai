@@ -1,11 +1,11 @@
 {
-  "id": "732f0f69-daa6-4ef1-8ea0-a20ca1beecad",
-  "createdAt": "2026-09-20T21:23:23.568Z",
+  "id": "bf44c188-49b5-4d76-8e3b-daf088295268",
+  "createdAt": "2026-09-22T16:59:01.390Z",
   "runtimeVersion": "exposdk:57.0.0",
   "launchAsset": {
-    "key": "bundle-1789939403568-4243",
+    "key": "bundle-1790096341390-948",
     "contentType": "application/javascript",
-    "url": "https://07266011-48a0-450e-a21f-1322301bfcbf-00-25mpnj6zs5e38.pike.replit.dev/1789939403568-4243/_expo/static/js/ios/bundle.js"
+    "url": "https://07266011-48a0-450e-a21f-1322301bfcbf-00-25mpnj6zs5e38.pike.replit.dev/1790096341390-948/_expo/static/js/ios/bundle.js"
   },
   "assets": [],
   "metadata": {},
@@ -16,7 +16,7 @@
     "expoClient": {
       "name": "ERKAN AI Android",
       "slug": "erkan-ai-mobile",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "orientation": "portrait",
       "icon": "./assets/images/icon.png",
       "splash": {
@@ -27,10 +27,12 @@
       "scheme": "erkanai",
       "userInterfaceStyle": "automatic",
       "ios": {
-        "supportsTablet": false
+        "supportsTablet": false,
+        "buildNumber": "2"
       },
       "android": {
         "package": "com.trsy.erkanai",
+        "versionCode": 2,
         "permissions": [
           "POST_NOTIFICATIONS"
         ],
@@ -104,9 +106,8 @@
       "packagerOpts": {
         "dev": false
       },
-      "mainModuleName": "artifacts/erkan-ai-mobile/node_modules/expo-router/entry",
-      "username": "replit-private-07266011-48a0-450e-a21f-1322301bfcbf"
+      "mainModuleName": "artifacts/erkan-ai-mobile/node_modules/expo-router/entry"
     },
-    "scopeKey": "@anonymous/erkan-ai-mobile-3630dfdb-cfc1-4ca1-93fb-04cb704e12f6"
+    "scopeKey": "@anonymous/erkan-ai-mobile-804f2b91-d8c2-4038-b4a6-383008d6e04a"
   }
 }
