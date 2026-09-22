@@ -1,1 +1,0 @@
-- [ERKAN AI Architecture](erkan-ai-arch.md) — React+Vite frontend + Express API, Arabic AI app with subscription tiers and admin panel

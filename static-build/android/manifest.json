@@ -1,0 +1,112 @@
+{
+  "id": "d64f8287-de74-4115-ab2f-68615856131a",
+  "createdAt": "2026-09-20T21:23:23.568Z",
+  "runtimeVersion": "exposdk:57.0.0",
+  "launchAsset": {
+    "key": "bundle-1789939403568-4243",
+    "contentType": "application/javascript",
+    "url": "https://07266011-48a0-450e-a21f-1322301bfcbf-00-25mpnj6zs5e38.pike.replit.dev/1789939403568-4243/_expo/static/js/android/bundle.js"
+  },
+  "assets": [],
+  "metadata": {},
+  "extra": {
+    "eas": {
+      "projectId": "2f5ed330-0046-4b90-b6a5-e32aba188b9d"
+    },
+    "expoClient": {
+      "name": "ERKAN AI Android",
+      "slug": "erkan-ai-mobile",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "icon": "./assets/images/icon.png",
+      "splash": {
+        "image": "./assets/images/erkan-ai-circular-logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#020817"
+      },
+      "scheme": "erkanai",
+      "userInterfaceStyle": "automatic",
+      "ios": {
+        "supportsTablet": false
+      },
+      "android": {
+        "package": "com.trsy.erkanai",
+        "permissions": [
+          "POST_NOTIFICATIONS"
+        ],
+        "intentFilters": [
+          {
+            "action": "VIEW",
+            "autoVerify": false,
+            "category": [
+              "BROWSABLE",
+              "DEFAULT"
+            ],
+            "data": [
+              {
+                "scheme": "erkanai",
+                "host": "oauth"
+              }
+            ]
+          }
+        ],
+        "adaptiveIcon": {
+          "foregroundImage": "./assets/images/icon.png",
+          "backgroundColor": "#050a1b",
+          "foregroundImageUrl": "http://127.0.0.1:8081/assets/./assets/images/icon.png"
+        }
+      },
+      "web": {
+        "favicon": "./assets/images/icon.png"
+      },
+      "plugins": [
+        "expo-router",
+        "expo-notifications"
+      ],
+      "extra": {
+        "eas": {
+          "projectId": "2f5ed330-0046-4b90-b6a5-e32aba188b9d"
+        },
+        "router": {}
+      },
+      "experiments": {
+        "typedRoutes": true,
+        "reactCompiler": true
+      },
+      "_internal": {
+        "isDebug": false,
+        "projectRoot": "/home/runner/workspace/artifacts/erkan-ai-mobile",
+        "dynamicConfigPath": {},
+        "staticConfigPath": "/home/runner/workspace/artifacts/erkan-ai-mobile/app.json",
+        "packageJsonPath": "/home/runner/workspace/artifacts/erkan-ai-mobile/package.json",
+        "pluginHistory": {
+          "expo-notifications": {
+            "name": "expo-notifications",
+            "version": "0.32.17"
+          }
+        }
+      },
+      "sdkVersion": "57.0.0",
+      "platforms": [
+        "ios",
+        "android",
+        "web"
+      ],
+      "iconUrl": "http://127.0.0.1:8081/assets/./assets/images/icon.png",
+      "hostUri": "07266011-48a0-450e-a21f-1322301bfcbf-00-25mpnj6zs5e38.pike.replit.dev/android"
+    },
+    "expoGo": {
+      "debuggerHost": "07266011-48a0-450e-a21f-1322301bfcbf-00-25mpnj6zs5e38.pike.replit.dev/android",
+      "developer": {
+        "tool": "expo-cli",
+        "projectRoot": "/home/runner/workspace/artifacts/erkan-ai-mobile"
+      },
+      "packagerOpts": {
+        "dev": false
+      },
+      "mainModuleName": "artifacts/erkan-ai-mobile/node_modules/expo-router/entry",
+      "username": "replit-private-07266011-48a0-450e-a21f-1322301bfcbf"
+    },
+    "scopeKey": "@anonymous/erkan-ai-mobile-3630dfdb-cfc1-4ca1-93fb-04cb704e12f6"
+  }
+}
